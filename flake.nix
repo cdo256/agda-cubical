@@ -1,60 +1,36 @@
 {
-  description = "Cubical Agda";
+  description = "";
 
-  inputs.nixpkgs.url = "nixpkgs/nixpkgs-unstable";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.flake-compat = {
-    url = "github:edolstra/flake-compat";
-    flake = false;
-  };
-  inputs.agda = {
-    url = "github:agda/agda/v2.7.0.1";
-    inputs = {
-      nixpkgs.follows = "nixpkgs";
-    };
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    just-agda.url = "github:cdo256/just-agda";
   };
 
-  outputs = { self, flake-compat, flake-utils, nixpkgs, agda }:
-    let
-      inherit (nixpkgs.lib) cleanSourceWith hasSuffix;
-      overlay = final: prev: {
-        cubical = final.agdaPackages.mkDerivation rec {
-          pname = "cubical";
-          version = "0.8";
-
-          src = cleanSourceWith {
-            filter = name: type:
-              !(hasSuffix ".nix" name)
-            ;
-            src = ./.;
+  outputs =
+    inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } (top: {
+      systems = [
+        "x86_64-linux"
+      ];
+      perSystem =
+        { pkgs, ... }:
+        let
+          agda = pkgs.agda.withPackages (ps: [ ]);
+          just-agda-base = inputs.just-agda.packages.${pkgs.system}.default;
+          just-agda = just-agda-base.override { inherit agda; };
+        in
+        {
+          packages = {
+            inherit agda just-agda;
+            default = just-agda;
           };
-
-
-          LC_ALL = "C.UTF-8";
-
-          # The cubical library has several `Everything.agda` files, which are
-          # compiled through the make file they provide.
-          nativeBuildInputs = [ final.ghc ];
-          buildPhase = ''
-            make
-          '';
-          meta = {
-            description = "An experimental library for Cubical Agda";
-            homepage = "https://github.com/agda/cubical";
-            license = "MIT License";
+          devShells.default = pkgs.mkShell {
+            buildInputs = [
+              agda
+              just-agda
+            ];
           };
         };
-        agdaWithCubical = final.agdaPackages.agda.withPackages [final.cubical];
-      };
-      overlays = [ agda.overlays.default overlay ];
-    in
-    { overlays.default = overlay; } //
-    flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs { inherit system overlays; };
-      in rec {
-        packages = with pkgs; rec {
-          inherit cubical agdaWithCubical;
-          default = cubical;
-        };
-      });
+    });
 }
