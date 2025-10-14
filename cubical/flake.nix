@@ -14,9 +14,24 @@
       flake-utils.follows = "flake-utils";
     };
   };
+  inputs.just-agda = {
+    type = "github";
+    owner = "cdo256";
+    repo = "just-agda";
+    ref = "main";
+  };
 
-  outputs = { self, flake-compat, flake-utils, nixpkgs, agda }:
+  outputs =
+    {
+      self,
+      flake-compat,
+      flake-utils,
+      nixpkgs,
+      agda,
+      just-agda,
+    }:
     let
+      just-agda-input = just-agda;
       inherit (nixpkgs.lib) cleanSourceWith hasSuffix;
       overlay = final: prev: {
         cubical = final.agdaPackages.mkDerivation rec {
@@ -24,12 +39,9 @@
           version = "0.7";
 
           src = cleanSourceWith {
-            filter = name: type:
-              !(hasSuffix ".nix" name)
-            ;
+            filter = name: type: !(hasSuffix ".nix" name);
             src = ./.;
           };
-
 
           LC_ALL = "C.UTF-8";
 
@@ -45,17 +57,49 @@
             license = "MIT License";
           };
         };
-        agdaWithCubical = final.agdaPackages.agda.withPackages [final.cubical];
+        agdaWithCubical = final.agdaPackages.agda.withPackages [ final.cubical ];
+        just-agda = just-agda-input.packages.${prev.system}.just-agda
+        #  .override {
+        #  inherit agda;
+        #  inherit (prev.emacsPackages) agda2-mode;
+        #};
+        ;
       };
-      overlays = [ agda.overlay overlay ];
+      overlays = [
+        agda.overlay
+        overlay
+      ];
     in
-    { overlays.default = overlay; } //
-    flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs { inherit system overlays; };
-      in rec {
+    {
+      overlays.default = overlay;
+    }
+    // flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system overlays; };
+      in
+      rec {
         packages = with pkgs; rec {
           inherit cubical agdaWithCubical;
           default = cubical;
+          just-agda = just-agda.packages.${system}.just-agda.override {
+            inherit agda;
+            inherit (pkgs.emacsPackages) agda2-mode;
+          };
         };
-      });
+        devShells.default = pkgs.mkShell {
+          buildInputs = [
+            pkgs.agda
+            pkgs.just-agda
+            pkgs.texlab
+            pkgs.ltex-ls
+            pkgs.pandoc
+            pkgs.fira-mono
+            pkgs.dejavu_fonts
+            pkgs.fontconfig
+            pkgs.julia-mono
+          ];
+        };
+      }
+    );
 }
