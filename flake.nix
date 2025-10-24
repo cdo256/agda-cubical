@@ -29,6 +29,8 @@
             buildInputs = [
               agda
               just-agda
+              pkgs.ghc
+              pkgs.gnumake
             ];
           };
         };
