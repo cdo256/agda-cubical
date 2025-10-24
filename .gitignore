@@ -4,4 +4,5 @@
 \#*
 Cubical/*/Everything.agda
 !Cubical/Codata/Everything.agda
+!Cubical/Papers/Everything.agda
 .direnv
