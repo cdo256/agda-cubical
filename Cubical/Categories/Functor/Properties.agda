@@ -16,6 +16,7 @@ open import Cubical.HITs.PropositionalTruncation as Prop
 open import Cubical.Data.Sigma
 open import Cubical.Data.Nat using (_+_)
 open import Cubical.Categories.Category
+open import Cubical.Categories.Constructions.BinProduct
 open import Cubical.Categories.Isomorphism
 open import Cubical.Categories.Morphism
 open import Cubical.Categories.Functor.Base
@@ -309,3 +310,12 @@ module _ {F : Functor C D} {G : Functor D E} where
           (injEmbedding (E .isSetHom) (isFaithfulG (F ⟅ x ⟆) (F ⟅ y ⟆) _ _)))
         ((λ z → F-hom F z) ,
           (injEmbedding (D .isSetHom) (isFaithfulF x y _ _))) .snd)
+
+module _ (C D : Category ℓ ℓ') where
+  open Category
+  open Functor
+  Swap : Functor (C ×C D) (D ×C C)
+  Swap .F-ob = swap
+  Swap .F-hom = swap
+  Swap .F-id = refl
+  Swap .F-seq f g = refl

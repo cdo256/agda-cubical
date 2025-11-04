@@ -490,3 +490,6 @@ separatedΣ {B = B} sepA sepB (a , b) (a' , b') p = ΣPathTransport→PathΣ _ _
     pB : subst B pA b ≡ b'
     pB = sepB _ _ _ (λ q → p (λ r → q (cong (λ r' → subst B r' b)
                                 (Separated→isSet sepA _ _ pA (cong fst r)) ∙ snd (PathΣ→ΣPathTransport _ _ r))))
+
+swap : {A : Type ℓ} {B : Type ℓ'} → A × B → B × A
+swap (a , b) = b , a
