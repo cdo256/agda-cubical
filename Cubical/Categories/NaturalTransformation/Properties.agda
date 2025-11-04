@@ -1,4 +1,3 @@
-
 {-# OPTIONS --safe #-}
 
 module Cubical.Categories.NaturalTransformation.Properties where
@@ -193,3 +192,46 @@ inv congNatIso^opFiso = _
 rightInv congNatIso^opFiso _ = refl
 leftInv congNatIso^opFiso _ = refl
 
+
+module _ {B : Category ℓB ℓB'} {C : Category ℓC ℓC'}
+         {D : Category ℓD ℓD'} {E : Category ℓE ℓE'} where
+  open NatTrans
+
+  ●ʰ-assoc : {F F' : Functor B C} {G G' : Functor C D} {H H' : Functor D E}
+           → (γ : NatTrans H H') (β : NatTrans G G') (α : NatTrans F F')
+           → (λ i → NatTrans (F-assoc i) (F-assoc i))
+           [ γ ●ʰ (β ●ʰ α)
+           ≡ (γ ●ʰ β) ●ʰ α ]
+  ●ʰ-assoc {F = F} {F' = F'} {G = G} {G' = G'} {H = H} {H' = H'}
+           γ β α = makeNatTransPathP F-assoc F-assoc (funExt p)
+    where
+    open Category E using () renaming (_⋆_ to _⋆ᴱ_)
+    open Category D using () renaming (_⋆_ to _⋆ᴰ_)
+    p : ∀ x → H ⟪ G ⟪ α ⟦ x ⟧ ⟫ ⋆ᴰ β ⟦ F' ⟅ x ⟆ ⟧ ⟫ ⋆ᴱ (γ ⟦ G' ⟅ F' ⟅ x ⟆ ⟆ ⟧)
+            ≡ H ⟪ G ⟪ α ⟦ x ⟧ ⟫ ⟫ ⋆ᴱ (H ⟪ β ⟦ F' ⟅ x ⟆ ⟧ ⟫ ⋆ᴱ γ ⟦ G' ⟅ F' ⟅ x ⟆ ⟆ ⟧)
+    p x = 
+      H ⟪ G ⟪ α ⟦ x ⟧ ⟫ ⋆ᴰ β ⟦ F' ⟅ x ⟆ ⟧ ⟫ ⋆ᴱ (γ ⟦ G' ⟅ F' ⟅ x ⟆ ⟆ ⟧)
+        ≡⟨ cong (_⋆ᴱ _) (H .F-seq _ _) ⟩
+      (H ⟪ G ⟪ α ⟦ x ⟧ ⟫ ⟫ ⋆ᴱ H ⟪ β ⟦ F' ⟅ x ⟆ ⟧ ⟫) ⋆ᴱ (γ ⟦ G' ⟅ F' ⟅ x ⟆ ⟆ ⟧)
+        ≡⟨ E .⋆Assoc _ _ _ ⟩
+      H ⟪ G ⟪ α ⟦ x ⟧ ⟫ ⟫ ⋆ᴱ (H ⟪ β ⟦ F' ⟅ x ⟆ ⟧ ⟫) ⋆ᴱ (γ ⟦ G' ⟅ F' ⟅ x ⟆ ⟆ ⟧) ∎
+
+module _ {B : Category ℓB ℓB'} {C : Category ℓC ℓC'}
+         {D : Category ℓD ℓD'} where
+  ∘ʳ≡●ʰ : {F F' : Functor B C}
+       → (G : Functor C D) (α : NatTrans F F')
+       → G ∘ʳ α ≡ idTrans G ●ʰ α
+  ∘ʳ≡●ʰ {F = F} {F' = F'} G α = makeNatTransPath (funExt p)
+    where
+    open Category D using () renaming (_⋆_ to _⋆ᴰ_)
+    p : ∀ x → (G ∘ʳ α) ⟦ x ⟧ ≡ (G ∘ʳ α) ⟦ x ⟧ ⋆ᴰ (idTrans G ∘ˡ F') ⟦ x ⟧
+    p x = sym (D .⋆IdR ((G ∘ʳ α) ⟦ x ⟧))
+
+  ∘ˡ≡●ʰ : {G G' : Functor C D}
+       → (α : NatTrans G G') (F : Functor B C)  
+       → (α ∘ˡ F) ≡ α ●ʰ idTrans F
+  ∘ˡ≡●ʰ {G = G} α F = makeNatTransPath (funExt p)
+    where
+    open Category D using () renaming (_⋆_ to _⋆ᴰ_)
+    p : ∀ x → (α ∘ˡ F) ⟦ x ⟧ ≡ ((G ∘ʳ idTrans F) ⟦ x ⟧ ⋆ᴰ ((α ∘ˡ F) ⟦ x ⟧))
+    p x = sym (D .⋆IdL _) ∙ cong (_⋆ᴰ _) (sym (G .F-id))

@@ -247,6 +247,9 @@ module _ {B : Category ℓB ℓB'} {C : Category ℓC ℓC'} {D : Category ℓD 
   whiskerTrans : {F F' : Functor B C} {G G' : Functor C D} (β : NatTrans G G') (α : NatTrans F F')
     → NatTrans (G ∘F F) (G' ∘F F')
   whiskerTrans {F}{F'}{G}{G'} β α = compTrans (β ∘ˡ F') (G ∘ʳ α)
+  _●ʰ_ : {F F' : Functor B C} {G G' : Functor C D} (β : NatTrans G G') (α : NatTrans F F')
+    → NatTrans (G ∘F F) (G' ∘F F')
+  _●ʰ_ = whiskerTrans
 
 module _ {B : Category ℓB ℓB'} {C : Category ℓC ℓC'} {D : Category ℓD ℓD'} where
   open NatIso
