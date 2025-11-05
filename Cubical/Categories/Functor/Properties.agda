@@ -24,7 +24,7 @@ open import Cubical.Categories.Functor.Base
 
 private
   variable
-    ℓ ℓ' ℓ'' : Level
+    ℓ ℓ' ℓ'' ℓ''' : Level
     B C D E : Category ℓ ℓ'
 
 open Category
@@ -311,7 +311,7 @@ module _ {F : Functor C D} {G : Functor D E} where
         ((λ z → F-hom F z) ,
           (injEmbedding (D .isSetHom) (isFaithfulF x y _ _))) .snd)
 
-module _ (C D : Category ℓ ℓ') where
+module _ (C : Category ℓ ℓ') (D : Category ℓ'' ℓ''') where
   open Category
   open Functor
   Swap : Functor (C ×C D) (D ×C C)
