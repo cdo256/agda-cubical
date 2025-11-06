@@ -1,4 +1,4 @@
-{-# OPTIONS --safe #-}
+{-# OPTIONS --allow-unsolved-metas #-}
 module Cubical.Categories.Limits.Wedge where
 
 open import Cubical.Foundations.Prelude
@@ -100,14 +100,14 @@ module _ {C : Category ℓC ℓC'} {D : Category ℓD ℓD'}
 
     ⋆Assoc
       : (f : Morphism W₁ W₂) (g : Morphism W₂ W₃) (h : Morphism W₃ W₄)
-      → (f ⋆ g) ⋆ h ≡ f ⋆ (g ⋆ h) 
+      → (f ⋆ g) ⋆ h ≡ f ⋆ (g ⋆ h)
     ⋆Assoc f g h = Morphism≡ (D.⋆Assoc _ _ _) 
 
     isSetHom : isSet (Morphism W₁ W₂)
     isSetHom f g p q i j .u =
       D.isSetHom (f .u) (g .u) (λ j → p j .u) (λ j → q j .u) i j
     isSetHom {W₁ = W₁} {W₂ = W₂} f g p q i j .triangle {X} =
-      v i j
+      {!v i j!}
       where
         p' : f .u ≡ g .u
         p' = λ j → p j .u
@@ -122,7 +122,7 @@ module _ {C : Category ℓC ℓC'} {D : Category ℓD ℓD'}
         w : ∀ i j → Triangle (isSet-u i j)
         w = congP {A = λ i → {!!}}
                   {B = λ i f → {!!}} (λ i a → {!!}) {!!} {!!}
-        v : isSet→SquareP {A = λ i j → {!Triangle!}} (λ i j → {!D.isSetHom!}) {!!} {!!} {!!} {!!} {!!} {!!} {!!}
+        -- v : isSet→SquareP {A = λ i j → {!Triangle!}} (λ i j → {!D.isSetHom!}) {!!} {!!} {!!} {!!} {!!} {!!} {!!}
 
     -- isSetHom : isSet (Morphism W₁ W₂)
     -- isSetHom f g p q i j .u =

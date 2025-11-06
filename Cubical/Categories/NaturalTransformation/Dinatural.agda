@@ -63,8 +63,6 @@ module _ {C : Category ℓC ℓC'} {D : Category ℓD ℓD'} where
     -- open Functor
     -- open DinaturalTrans
 
-    infixr 9 _<∘_
-    infixl 9 _∘>_
 
     module LeftComposition (θ : NatTrans G H) (β : DinaturalTrans F G) where
       private
@@ -101,6 +99,7 @@ module _ {C : Category ℓC ℓC'} {D : Category ℓD ℓD'} where
 
       _<∘_ : DinaturalTrans F H
       _<∘_ = record { α = α ; hexagon = hexagon}
+      infixr 9 _<∘_
     open LeftComposition using (_<∘_)
 
     module RightComposition (θ : DinaturalTrans G H) (β : NatTrans F G) where
@@ -147,4 +146,6 @@ module _ {C : Category ℓC ℓC'} {D : Category ℓD ℓD'} where
 
       _∘>_ : DinaturalTrans F H
       _∘>_ = record { α = α ; hexagon = hexagon }
+      infixl 9 _∘>_
     open RightComposition using (_∘>_)
+
