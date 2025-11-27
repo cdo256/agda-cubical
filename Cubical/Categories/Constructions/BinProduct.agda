@@ -8,11 +8,13 @@ open import Cubical.Foundations.Prelude
 open import Cubical.Data.Sigma
 open import Cubical.Categories.Category.Base
 open import Cubical.Categories.Functor.Base
+open import Cubical.Categories.Functor.Isomorphism 
 open import Cubical.Categories.Functors.Constant
 
 private
   variable
     ℓA ℓA' ℓB ℓB' ℓC ℓC' ℓD ℓD' ℓE ℓE' : Level
+    ℓA'' ℓA''' ℓB'' ℓB''' ℓC'' ℓC''' ℓD'' ℓD''' ℓE'' ℓE''' : Level
 
 
 open Category
@@ -53,6 +55,9 @@ module _ where
       C : Category ℓC ℓC'
       D : Category ℓD ℓD'
       E : Category ℓE ℓE'
+      C' : Category ℓA'' ℓA'''
+      D' : Category ℓD'' ℓD'''
+      E' : Category ℓE'' ℓE'''
 
   open Functor
 
@@ -77,12 +82,40 @@ module _ (C : Category ℓC ℓC')
   open Functor
 
   module _ (E : Category ℓE ℓE') where
+    open isFunctorIso
+
     -- Associativity of product
     ×C-assoc : Functor (C ×C (D ×C E)) ((C ×C D) ×C E)
     ×C-assoc .F-ob (c , (d , e)) = ((c , d), e)
     ×C-assoc .F-hom (f , (g , h)) = ((f , g), h)
     ×C-assoc .F-id = refl
     ×C-assoc .F-seq _ _ = refl
+
+    ×C-assoc⁻ : Functor ((C ×C D) ×C E) (C ×C (D ×C E))
+    ×C-assoc⁻ .F-ob ((c , d) , e) = (c , (d , e))
+    ×C-assoc⁻ .F-hom ((f , g) , h) = (f , (g , h))
+    ×C-assoc⁻ .F-id = refl
+    ×C-assoc⁻ .F-seq _ _ = refl
+
+    assoc≅ꟳ : (C ×C (D ×C E)) ≅ꟳ ((C ×C D) ×C E)
+    assoc≅ꟳ = ×C-assoc , mkFunctorIso ×C-assoc⁻ li ri
+      where
+      li : ×C-assoc ∘F ×C-assoc⁻ ≡ Id
+      li = Functor≡ (λ _ → refl) p
+        where
+          p : ∀ {c c'} (f : ((C ×C D) ×C E) [ c , c' ])
+            → F-hom (×C-assoc ∘F ×C-assoc⁻) f
+            ≡ F-hom (Id {C = ((C ×C D) ×C E)}) {x = c} {y = c'} f
+          p f = refl
+
+      ri : ×C-assoc⁻ ∘F ×C-assoc ≡ Id
+      ri = Functor≡ (λ _ → refl) q
+        where
+          q : ∀ {c c'} (f : (C ×C (D ×C E)) [ c , c' ])
+            → F-hom (×C-assoc⁻ ∘F ×C-assoc) f
+            ≡ F-hom (Id {C = (C ×C (D ×C E))}) {x = c} {y = c'} f
+          q f = refl
+    
 
   -- Left/right injections into product
   linj : (d : ob D) → Functor C (C ×C D)
@@ -107,3 +140,26 @@ module _ (C : Category ℓC ℓC')
   CatIso× f g .snd .inv = f .snd .inv , g .snd .inv
   CatIso× f g .snd .sec i = f .snd .sec i , g .snd .sec i
   CatIso× f g .snd .ret i = f .snd .ret i , g .snd .ret i
+
+  Id×Id≡Id : Id {C = C} ×F Id {C = D} ≡ Id {C = C ×C D}
+  Id×Id≡Id =
+    Functor≡
+      (λ (c , d) → refl)
+      (λ (f , g) → refl)
+
+
+module _
+      {C : Category ℓC ℓC'}
+      {D : Category ℓD ℓD'}
+      {E : Category ℓE ℓE'}
+      {C' : Category ℓA'' ℓA'''}
+      {D' : Category ℓD'' ℓD'''}
+      {E' : Category ℓE'' ℓE'''} where
+
+  open Functor
+
+  ×F-comp-distrib : (F : Functor C D) (G : Functor C' D')
+                  → (F' : Functor D E) (G' : Functor D' E')
+                  → (F' ×F G') ∘F (F ×F G) ≡ (F' ∘F F) ×F (G' ∘F G)
+  ×F-comp-distrib F G F' G' =
+    Functor≡ (λ x → refl) (λ f → refl)
