@@ -174,3 +174,22 @@ F-ob (ΣPropCatFunc F FPres) (c , c∈P) = F .F-ob c , FPres c c∈P
 F-hom (ΣPropCatFunc F FPres) = F .F-hom
 F-id (ΣPropCatFunc F FPres) = F .F-id
 F-seq (ΣPropCatFunc F FPres) = F .F-seq
+
+module _ {ℓC ℓC' ℓD ℓD'}
+  {C : Category ℓC ℓC'} {D : Category ℓD ℓD'}
+  where
+
+  open Functor
+
+  record isFunctorIso
+    (F : Functor C D) : Type (ℓ-suc (ℓ-max (ℓ-max ℓC ℓC') (ℓ-max ℓD ℓD'))) where
+    constructor mkFunctorIso
+    field 
+      inv : Functor D C
+      rinv : F ∘F inv ≡ Id
+      linv : inv ∘F F ≡ Id
+
+module _ {ℓC ℓC' ℓD ℓD'}
+  where
+  _≅ꟳ_ : (C : Category ℓC ℓC') (D : Category ℓD ℓD') → Type _
+  C ≅ꟳ D = Σ (Functor C D) isFunctorIso
