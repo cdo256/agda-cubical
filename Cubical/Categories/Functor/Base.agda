@@ -78,8 +78,8 @@ FunctorSquare {C = C} {D = D} F₀₋ F₁₋ F₋₀ F₋₁ r = sqr
   sqr : _
   sqr i j .F-ob = r i j
   sqr i j .F-hom {x = x} {y = y} f =
-    isSet→SquareP (λ i j → D .isSetHom {x = sqr i j .F-ob x} {y = sqr i j .F-ob y})
-    (λ i → F₀₋ i .F-hom f) (λ i → F₁₋ i .F-hom f) (λ i → F₋₀ i .F-hom f) (λ i → F₋₁ i .F-hom f) i j
+    {!isSet→SquareP (λ i j → D .isSetHom {x = sqr i j .F-ob x} {y = sqr i j .F-ob y})
+    (λ i → F₀₋ i .F-hom f) (λ i → F₁₋ i .F-hom f) (λ i → F₋₀ i .F-hom f) (λ i → F₋₁ i .F-hom f) i j!}
   sqr i j .F-id {x = x} =
     isSet→SquareP (λ i j → isProp→isSet (D .isSetHom (sqr i j .F-hom (C .id)) (D .id)))
     (λ i → F₀₋ i .F-id) (λ i → F₁₋ i .F-id) (λ i → F₋₀ i .F-id) (λ i → F₋₁ i .F-id) i j

@@ -66,6 +66,7 @@ record SetFam ℓ ℓ' : Type (ℓ-suc (ℓ-max ℓ ℓ')) where
   field
     Idx : hSet ℓ
     Fib : ⟨ Idx ⟩ → hSet ℓ'
+
 ⟦_⟧ : SetFam ℓ ℓ' → Type (ℓ-max ℓ ℓ')
 ⟦ Idx , Fib ⟧ = Σ ⟨ Idx ⟩ λ i → ⟨ Fib i ⟩
 isSetFam : {F : SetFam ℓ ℓ'} → isSet ⟦ F ⟧
