@@ -13,6 +13,7 @@ open import Cubical.Foundations.HLevels
 open import Cubical.Foundations.Equiv
 open import Cubical.Foundations.Function
 open import Cubical.Foundations.Structure
+open import Cubical.Foundations.Equiv 
 
 open import Cubical.Data.Empty as ⊥
 open import Cubical.Data.Sigma
@@ -257,6 +258,17 @@ A · B = ⟨ A ⟩ × ⟨ B ⟩ , wosetstr _≺_ wos
         wos : IsWoset _≺_
         wos = iswoset set prop well weak trans
 
+module WellOrderℕ where
+  open import Cubical.Data.Nat
+  open import Cubical.Data.Nat.Order
+  <-acc : ∀ n → Acc _<_ n
+  <-acc zero = acc λ{ y y<0 → ⊥.rec (¬-<-zero y<0)}
+  <-acc (ℕ.suc n) = acc (λ y y<n' → r y y<n' (<-acc n))
+    where r : ∀ y → (y<n' : y < ℕ.suc n) → Acc _<_ n → Acc _<_ y 
+          r y y<n' (acc recn) with <-split y<n'
+          ... | inl y<n = recn y y<n
+          ... | inr y≡n = acc (λ u u<y → recn u (subst (u <_) y≡n u<y))
+
 record MonotoneOrdSeq {ℓ ℓ'} : Type (ℓ-max (ℓ-suc ℓ) (ℓ-suc ℓ')) where
   field
     Idx : Ord {ℓ}
@@ -268,25 +280,23 @@ record MonotoneOrdSeq {ℓ ℓ'} : Type (ℓ-max (ℓ-suc ℓ) (ℓ-suc ℓ')) w
     mon : ∀ (i j : ⟨ Idx ⟩) → i ≺ᴵ j → Fib i ≺ᵂ Fib j
 
 data _≺ʰ_ {Γ Δ : Ord {ℓ}} : (α : ⟨ Γ ⟩) → (β : ⟨ Δ ⟩) → Type ℓ where
-  eqʰ : (α : ⟨ Γ ⟩) (β : ⟨ Δ ⟩) → (Γ ↓ α) ≺ᵂ (Δ ↓ β) → α ≺ʰ β 
+  injʰ : (α : ⟨ Γ ⟩) (β : ⟨ Δ ⟩) → (Γ ↓ α) ≺ᵂ (Δ ↓ β) → α ≺ʰ β 
 
-lim : ∀ {ℓ ℓ'} → MonotoneOrdSeq {ℓ} {ℓ'} → Ord {ℓ-max ℓ ℓ'}
-lim {ℓ} {ℓ'} Γ = A , wosetstr _≺_ iswos
+
+module _ {Γ : Ord {ℓ}} where
+  private
+    _≺'_ = WosetStr._≺_ (str Γ)
+  ≺ʰ→≺ : (α β : ⟨ Γ ⟩) → α ≺ʰ β → α ≺' β
+  ≺ʰ→≺ α β (injʰ α β α<β) = ↓Respects≺⁻ Γ α β α<β
+
+lim : ∀ {ℓ ℓ'} → (I : hSet ℓ) (F : ⟨ I ⟩ → Ord {ℓ'}) → Ord {ℓ-max ℓ ℓ'}
+lim {ℓ} {ℓ'} I F = {!A , wosetstr _≺_ iswos!}
   where
-  open MonotoneOrdSeq Γ 
   A : Type (ℓ-max ℓ ℓ')
-  A = (Σ[ i ∈ ⟨ Idx ⟩ ] ⟨ Fib i ⟩)
-  _≺ᴵ_ = WosetStr._≺_ (str Idx)
-  wosI = WosetStr.isWoset (str Idx)
-  setI = IsWoset.is-set wosI
-  propI = IsWoset.is-prop-valued wosI
-  wellI = IsWoset.is-well-founded wosI
-  weakI = IsWoset.is-weakly-extensional wosI
-  transI = IsWoset.is-trans wosI
-
-  module _ (i : ⟨ Idx ⟩) where
-    ≺ꟳ = WosetStr._≺_ (str (Fib i))
-    wosF = WosetStr.isWoset (str (Fib i))
+  A = (Σ[ i ∈ ⟨ I ⟩ ] ⟨ F i ⟩)
+  module _ (i : ⟨ I ⟩) where
+    ≺ꟳ = WosetStr._≺_ (str (F i))
+    wosF = WosetStr.isWoset (str (F i))
     setF = IsWoset.is-set wosF
     propF = IsWoset.is-prop-valued wosF
     wellF = IsWoset.is-well-founded wosF
@@ -299,25 +309,89 @@ lim {ℓ} {ℓ'} Γ = A , wosetstr _≺_ iswos
   open BinaryRelation
 
   set : isSet A 
-  set = isSetΣ setI setF
+  set = isSetΣ (str I) setF
 
   prop : isPropValued _≺_
   prop (i , α) (j , β) = isOfHLevelLift 1 prop'
     where
     prop' : isProp (α ≺ʰ β)
-    prop' (eqʰ _ _ <1) (eqʰ _ _ <2) =
-      cong (eqʰ α β) (isPropValued≺ (Fib i ↓ α)  (Fib j ↓ β) <1 <2)
-
+    prop' (injʰ _ _ <1) (injʰ _ _ <2) =
+      cong (injʰ α β) (isPropValued≺ (F i ↓ α)  (F j ↓ β) <1 <2)
+    
   well : WellFounded _≺_
-  well (i , α) = WFI.induction wellI {P = λ x → Acc _≺_ (i , α)}
-    (WFI.induction {!wellF i!} {!!}) {!!}
+  well (i , α) = WFI.induction isWellFounded≺ {P = λ Γ → ∀ i β → Γ ≡ (F i ↓ β) → Acc _≺_ (i , β)}
+    r (F i ↓ α) i α refl
+    where
+    r : ∀ Γ → (∀ Δ → Δ ≺ᵂ Γ → ∀ j → (β : ⟨ F j ⟩) → Δ ≡ (F j ↓ β) → Acc _≺_ (j , β)) →
+         (j : ⟨ I ⟩) (β : ⟨ F j ⟩) → Γ ≡ (F j ↓ β) → Acc _≺_ (j , β)
+    r Γ recΓ j β Γ≡β' = acc recΨ 
+      where
+      recΨ : WFRec _≺_ (Acc _≺_) (j , β)
+      recΨ (k , γ) (lift (injʰ _ _ <w)) = recΓ (F k ↓ γ) (subst (_ ≺ᵂ_) (sym Γ≡β') <w) k γ refl
 
   weak : isWeaklyExtensional _≺_
-  weak x y = {!!}
+  weak (i , α) (j , β) = propBiimpl→Equiv (set _ _) equivProp {!!} {!!} .snd
+    where
+    equivProp : isProp (∀ Γ → (Γ ≺ (i , α)) ≃ (Γ ≺ (j , β)))
+    equivProp u v = funExt λ Γ → {!!}
 
-  trans : isTrans _≺_
-  trans (A , α) (B , β) (Γ , γ)  (lift (eqʰ _ _ α<β)) (lift (eqʰ _ _ β<Γ)) =
-    lift (eqʰ α γ (isTrans≺ (Fib A ↓ α) (Fib B ↓ β) (Fib Γ ↓ γ) α<β β<Γ))
+  -- trans : isTrans _≺_
 
-  iswos : IsWoset _≺_
-  iswos = iswoset set prop well weak trans
+  -- iswos : IsWoset _≺_
+  -- iswos = iswoset set prop well weak trans
+
+{-
+-- lim : ∀ {ℓ ℓ'} → MonotoneOrdSeq {ℓ} {ℓ'} → Ord {ℓ-max ℓ ℓ'}
+-- lim {ℓ} {ℓ'} Γ = A , wosetstr _≺_ iswos
+--   where
+--   open MonotoneOrdSeq Γ 
+--   A : Type (ℓ-max ℓ ℓ')
+--   A = (Σ[ i ∈ ⟨ Idx ⟩ ] ⟨ Fib i ⟩)
+--   _≺ᴵ_ = WosetStr._≺_ (str Idx)
+--   wosI = WosetStr.isWoset (str Idx)
+--   setI = IsWoset.is-set wosI
+--   propI = IsWoset.is-prop-valued wosI
+--   wellI = IsWoset.is-well-founded wosI
+--   weakI = IsWoset.is-weakly-extensional wosI
+--   transI = IsWoset.is-trans wosI
+
+--   module _ (i : ⟨ Idx ⟩) where
+--     ≺ꟳ = WosetStr._≺_ (str (Fib i))
+--     wosF = WosetStr.isWoset (str (Fib i))
+--     setF = IsWoset.is-set wosF
+--     propF = IsWoset.is-prop-valued wosF
+--     wellF = IsWoset.is-well-founded wosF
+--     weakF = IsWoset.is-weakly-extensional wosF
+--     transF = IsWoset.is-trans wosF
+
+--   _≺_ : Rel A A (ℓ-max ℓ ℓ')
+--   (i , α) ≺ (j , β) = Lift {j = ℓ} (α ≺ʰ β)
+
+--   open BinaryRelation
+
+--   set : isSet A 
+--   set = isSetΣ setI setF
+
+--   prop : isPropValued _≺_
+--   prop (i , α) (j , β) = isOfHLevelLift 1 prop'
+--     where
+--     prop' : isProp (α ≺ʰ β)
+--     prop' (eqʰ _ _ <1) (eqʰ _ _ <2) =
+--       cong (eqʰ α β) (isPropValued≺ (Fib i ↓ α)  (Fib j ↓ β) <1 <2)
+
+--   well : WellFounded _≺_
+--   well (i , α) = WFI.induction wellI {P = λ x → Acc _≺_ (i , α)}
+--     (WFI.induction {!wellF i!} {!!}) {!!}
+
+--   weak : isWeaklyExtensional _≺_
+--   weak x y = {!!}
+
+--   trans : isTrans _≺_
+--   trans (A , α) (B , β) (Γ , γ)  (lift (eqʰ _ _ α<β)) (lift (eqʰ _ _ β<Γ)) =
+--     lift (eqʰ α γ (isTrans≺ (Fib A ↓ α) (Fib B ↓ β) (Fib Γ ↓ γ) α<β β<Γ))
+
+--   iswos : IsWoset _≺_
+--   iswos = iswoset set prop well weak trans
+-- -}
+-- -}
+-- -}

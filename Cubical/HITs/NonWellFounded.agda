@@ -104,7 +104,7 @@ module nCycle (n : ℕ) where
     toQuot (squash x x₁ x₂ y i i₁) = {!!}
 
     toQuotIter : ∀ k → toQuot (iterℕ k s z) ≡ [ k ]
-    toQuotIter zero = {!refl!}
+    toQuotIter zero = {!!}
     toQuotIter (suc k) = {!!}
 
     -- iter : nCycle → A

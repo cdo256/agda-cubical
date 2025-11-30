@@ -15,3 +15,4 @@ data _/_ {ℓ ℓ'} (A : Type ℓ) (R : A → A → Type ℓ') : Type (ℓ-max �
   [_] : (a : A) → A / R
   eq/ : (a b : A) → (r : R a b) → [ a ] ≡ [ b ]
   squash/ : (x y : A / R) → (p q : x ≡ y) → p ≡ q
+

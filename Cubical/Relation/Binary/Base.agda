@@ -19,6 +19,17 @@ open import Cubical.Relation.Nullary.Base
 
 open import Cubical.Induction.WellFounded
 
+open import Cubical.Foundations.Prelude
+open import Cubical.Foundations.Univalence
+open import Cubical.Foundations.HLevels
+open import Cubical.Foundations.Equiv
+open import Cubical.Foundations.Path
+open import Cubical.Foundations.Structure
+open import Cubical.HITs.PropositionalTruncation
+open import Cubical.Data.Sigma
+open import Cubical.Functions.FunExtEquiv 
+
+
 private
   variable
     ℓA ℓ≅A ℓA' ℓ≅A' : Level
