@@ -27,8 +27,20 @@ module _ where
     field
       _≈_ : X → X → Type ℓ'
       equiv : isEquivRel _≈_
+    open isEquivRel equiv public
+
   Setoid : ∀ ℓ ℓ' → Type (ℓ-suc (ℓ-max ℓ ℓ'))
   Setoid ℓ ℓ' = TypeWithStr ℓ (isSetoid ℓ')
+
+  mkSetoid : (X : Type ℓ) (_≈_ : X → X → Type ℓ')
+           → (≈refl : ∀ {x} → x ≈ x)
+           → (≈sym : ∀ {x y} → x ≈ y → y ≈ x)
+           → (≈trans : ∀ {x y z} → x ≈ y → y ≈ z → x ≈ z)
+           → Setoid ℓ ℓ'
+  mkSetoid X _≈_ ≈refl ≈sym ≈trans = X , record
+    { _≈_ = _≈_
+    ; equiv = equivRel (λ _ → ≈refl) (λ _ _ → ≈sym) (λ _ _ _ → ≈trans)
+    }
 
   record ≈Hom[_,_] (S : Setoid ℓ ℓ') (T : Setoid ℓ ℓ') : Type (ℓ-suc (ℓ-max ℓ ℓ')) where
     constructor ≈hom
@@ -50,11 +62,27 @@ module _ where
        → ≈Hom[ S , U ]
   _≈∘_ (≈hom g g~) (≈hom f f~) = ≈hom (g ∘ f) (g~ ∘ f~)
 
-  ≈Hom-eq : {S T : Setoid ℓ ℓ'} (f g : ≈Hom[ S , T ]) → Type (ℓ-max ℓ ℓ')
-  ≈Hom-eq {S = S} {T = T} (≈hom f _) (≈hom g _) = ∀ x → f x ≈ᵀ g x
-    where
-    open isSetoid (str S) hiding (equiv) renaming (_≈_ to _≈ˢ_)
-    open isSetoid (str T) hiding (equiv) renaming (_≈_ to _≈ᵀ_)
+
+  module _ {S T : Setoid ℓ ℓ'} where
+    module S = isSetoid (str S)
+    module T = isSetoid (str T)
+    open ≈Hom[_,_]
+    open isEquivRel
+
+    _≈⃗_ : (F G : ≈Hom[ S , T ]) → Type (ℓ-max ℓ ℓ')
+    _≈⃗_ (≈hom f _) (≈hom g _) = ∀ x → f x T.≈ g x
+
+    ≈⃗refl : {F : ≈Hom[ S , T ]} → F ≈⃗ F
+    ≈⃗refl {≈hom f _} = λ x → T.reflexive (f x)
+
+    ≈⃗sym : {F G : ≈Hom[ S , T ]} → F ≈⃗ G → G ≈⃗ F
+    ≈⃗sym F≈G = λ x → T.symmetric _ _ (F≈G x)
+
+    ≈⃗trans : {F G H : ≈Hom[ S , T ]} → F ≈⃗ G → G ≈⃗ H → F ≈⃗ H
+    ≈⃗trans F≈G G≈H = λ x → T.transitive _ _ _ (F≈G x) (G≈H x)
+
+  HomSetoid : (S T : Setoid ℓ ℓ') → Setoid (ℓ-max (ℓ-suc ℓ) (ℓ-suc ℓ')) (ℓ-max ℓ ℓ')
+  HomSetoid S T = mkSetoid ≈Hom[ S , T ] _≈⃗_ ≈⃗refl ≈⃗sym ≈⃗trans
 
 record isPreorder {X : Type ℓ} (_≤_ : X → X → Type ℓ') : Type (ℓ-max ℓ ℓ') where
   field
@@ -71,62 +99,115 @@ module _ {I : Type ℓ}
     open isPreorder ≤preorder
     field
       D-ob : ∀ (i : I)
-           → Setoid ℓ ℓ'
+           → Setoid ℓ (ℓ-max ℓ ℓ')
       D-mor : ∀ {i j} → (p : i ≤ j)
             → ≈Hom[ D-ob i , D-ob j ]
-      D-id : ∀ {i} → D-mor (≤refl {i}) ≡ ≈Id (D-ob i)
+      D-id : ∀ {i} → (D-mor (≤refl {i})) ≈⃗ (≈Id (D-ob i))
       D-comp : ∀ {i j k} → (p : i ≤ j) (q : j ≤ k)
-             → D-mor (≤trans p q) ≡ D-mor q ≈∘ D-mor p
+             → (D-mor (≤trans p q)) ≈⃗ (D-mor q ≈∘ D-mor p)
 
   module Colim (P : Diagram) where
-    open Diagram P
+    open Diagram P renaming (D-ob to P̂)
+    open isSetoid hiding (equiv)
+
+    Pf : ∀ {i j} (p : i ≤ j) → (⟨ P̂ i ⟩ → ⟨ P̂ j ⟩)
+    Pf p = D-mor p .≈Hom[_,_].fun
+
+    ≈j : ∀ i → (x y : ⟨ P̂ i ⟩) → Type _
+    ≈j i x y = x ≈' y
+      where open isSetoid (str (P̂ i)) renaming (_≈_ to _≈'_)
+    syntax ≈j i x y = x ≈[ i ] y
+
+    equiv' : ∀ i → isEquivRel (≈j i)
+    equiv' i = equiv
+      where open isSetoid (str (P̂ i))
+
     open ≈Hom[_,_]
 
     Colim₀ : Type ℓ
-    Colim₀ = Σ[ i ∈ I ] ⟨ D-ob i ⟩
-    data _≈ˡ_ : Colim₀ → Colim₀ → Type (ℓ' ) where
-      ≈lstage : ∀ i → (x x' : ⟨ D-ob i ⟩) → (i , x) ≈ˡ (i , x')
-      ≈lstep : ∀ {i j} (p : i ≤ j) (x : ⟨ D-ob i ⟩)
-             → (i , x) ≈ˡ (j , D-mor p .fun x)
+    Colim₀ = Σ[ i ∈ I ] ⟨ P̂ i ⟩
+    data _≈ˡ_ : Colim₀ → Colim₀ → Type (ℓ-max ℓ ℓ') where
+      ≈lstage : ∀ i → {x x' : ⟨ P̂ i ⟩} → x ≈[ i ] x' → (i , x) ≈ˡ (i , x')
+      ≈lstep : ∀ {i j} (p : i ≤ j) (x : ⟨ P̂ i ⟩)
+             → (i , x) ≈ˡ (j , Pf p x)
       ≈lsym : ∀ {s t} → s ≈ˡ t → t ≈ˡ s
       ≈ltrans : ∀ {s t u} → s ≈ˡ t → t ≈ˡ u → s ≈ˡ u 
 
     equiv : isEquivRel _≈ˡ_
-    equiv .reflexive = λ (i , x) → ≈lstage i x x
+    equiv .reflexive (i , x) = ≈lstage i (reflexive' x)
+      where open isEquivRel (equiv' i)
+                 renaming (reflexive to reflexive')
     equiv .symmetric = λ _ _ P → ≈lsym P
     equiv .transitive = λ _ _ _ P Q → ≈ltrans P Q
 
-    Colim : Setoid ℓ ℓ'
+    Colim : Setoid ℓ (ℓ-max ℓ ℓ')
     Colim = Colim₀ , record { _≈_ = _≈ˡ_ ; equiv = equiv }
 
     -- All cocones for this diagram live in the same (ℓ, ℓ') universe
     record Cocone : Type (ℓ-suc (ℓ-max ℓ ℓ')) where
       field
-        Apex : Setoid ℓ ℓ'
-        inj  : ∀ i → ≈Hom[ D-ob i , Apex ]
+        Apex : Setoid ℓ (ℓ-max ℓ ℓ')
+        inj  : ∀ i → ≈Hom[ P̂ i , Apex ]
+        commutes : ∀ {i j} (p : i ≤ j) → inj i ≈⃗ (inj j ≈∘ D-mor p) 
     open Cocone
 
     -- The canonical cocone into the colimit
     LimitCocone : Cocone
-    LimitCocone .Apex = {!Colim!}
+    LimitCocone .Apex = Colim
     LimitCocone .inj i .fun x = i , x
-    LimitCocone .inj i .resp {x} {y} x≈y = {!!}
-      where
-      open isSetoid (str Colim)
+    LimitCocone .inj i .resp x≈y = ≈lstage i x≈y
+    LimitCocone .commutes {i} {j} p x = ≈lstep p x
 
     -- Morphisms of cocones
     record ColimMorphism (C C' : Cocone) : Type (ℓ-suc (ℓ-max ℓ ℓ')) where
       field
         apexHom  : ≈Hom[ C .Apex , C' .Apex ]
-        commutes : ∀ i x →
-          ≈Hom-eq
-            (apexHom ≈∘ C .inj i)
-            (C' .inj i)
+        commutes : ∀ i → (apexHom ≈∘ C .inj i)
+                       ≈⃗ (C' .inj i)
 
-    -- Universal property (you can fill this later)
-    record isLimitingCone (C : Cocone) : Type (ℓ-suc (ℓ-max ℓ ℓ')) where
+    open ColimMorphism
+
+    record isLimitingCocone (C : Cocone) : Type (ℓ-suc (ℓ-max ℓ ℓ')) where
       field
-        -- map : ∀ C' → Σ[ h ∈ ColimMorphism C' C ]
+        mor : ∀ C' → ColimMorphism C C'
+        unique : ∀ C' → (F : ColimMorphism C C')
+               → (F .apexHom) ≈⃗ (mor C' .apexHom)        
+               
+    open isLimitingCocone 
+
+    
+    module _ (C' : Cocone) where
+      open Cocone C'
+      module C' = isSetoid (str (C' .Apex))
+
+      private
+        f : ⟨ Colim ⟩ → ⟨ C' .Apex ⟩
+        f (i , x) = C' .inj i .fun x
+
+      isRespecting : ∀ {i j x y} → (i , x) ≈ˡ (j , y)
+           →    C' .inj i .fun x 
+           C'.≈ C' .inj j .fun y 
+      isRespecting (≈lstage i x≈y) = C' .inj i .resp x≈y
+      isRespecting (≈lstep p x) = C' .commutes p x
+      isRespecting (≈lsym r) = C'.symmetric _ _ (isRespecting r)
+      isRespecting (≈ltrans r s) = C'.transitive _ _ _ (isRespecting r) (isRespecting s)
+
+      F : ColimMorphism LimitCocone C'
+      F .apexHom .fun = f
+      F .apexHom .resp = isRespecting
+      F .commutes i x = C'.reflexive (f (i , x))
+
+      unq : (G : ColimMorphism LimitCocone C')
+          → ∀ x → G .apexHom .fun x C'.≈ f x       
+      unq G (i , x) = G .commutes i x
+
+    module _ where
+      isLimitingCoconeLimitCocone : isLimitingCocone LimitCocone
+      isLimitingCoconeLimitCocone = record
+        { mor = F
+        ; unique = unq
+        }
+
 
 data BTree (B : Type ℓ) : Type ℓ where
   leaf : BTree B
@@ -185,18 +266,10 @@ module ωOrdinal where
     ischild : ∀ f i → isChild (node f) (f i) 
   
   -- not decidable.
-  isChild? : (α β : Ord) → Dec (isChild α β)
-  isChild? 𝟘 β = no (λ ())
-  isChild? (lim f) β = {!!}
-
-  -- 𝟘<lim : ∀ f → 𝟘 < lim f
-  -- 𝟘<lim f with isChild? (lim f) 𝟘 
-  -- ... | yes p = {!!}
-  -- ... | no ¬p = <trans {!!} {!!}
+  -- isChild? : (α β : Ord) → Dec (isChild α β)
 
   -- Not definable in general since we need arbitrary branching.
-  lim' : (f : Ord → Ord) → Ord 
-  lim' f = lim λ i → {!!}
+  -- lim' : (f : Ord → Ord) → Ord 
 
   infixl 30  _+ᵒ_ 
   _+ᵒ_ : Ord → Ord → Ord
@@ -207,13 +280,13 @@ module ωOrdinal where
   _ = ≈ext le ge
     where
     le : (ℕ→Ord 1 +ᵒ ℕ→Ord 1) ≤ ℕ→Ord 2
-    le 𝟘 p = {!!}
-    le (lim f) p = {!!}
+    le 𝟘 p = p
+    le (lim f) p = p
     ge : ℕ→Ord 2 ≤ (ℕ→Ord 1 +ᵒ ℕ→Ord 1)
-    ge = {!!}
+    ge = λ u p → p
 
-  1+ω≈ω : 𝟙 +ᵒ ω ≈ ω
-  1+ω≈ω = {!!}
+  -- Probably not decidable
+  -- 1+ω≈ω : 𝟙 +ᵒ ω ≈ ω
 
   -- Does this bring in an extra successor?
   _∙ᵒ_ : Ord → Ord → Ord
