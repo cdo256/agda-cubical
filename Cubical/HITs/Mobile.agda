@@ -1,6 +1,6 @@
 module Cubical.HITs.Mobile where
 
-open import Cubical.Foundations.Prelude
+open import Cubical.Foundations.Prelude hiding (Path)
 open import Cubical.Foundations.Transport
 open import Cubical.Foundations.Function
 open import Cubical.Foundations.Path
@@ -12,6 +12,8 @@ open import Cubical.Data.Nat renaming (iter to iterℕ) hiding (_+_)
 import Cubical.HITs.SetQuotients as Quot
 open Quot hiding (rec)
 open import Cubical.Data.Prod hiding (swap)
+open import Cubical.Data.Sum
+open import Cubical.Data.Empty renaming (elim to absurd)
 open import Cubical.Relation.Binary.Base
 open import Cubical.Relation.Nullary
 open import Cubical.Relation.Nullary.Base 
@@ -375,44 +377,100 @@ module Mobile (B : Type) where
 
 -- open ωOrdinal ℕ using (Ord; iterOrd)
 
-module PermTree (A : Type) (B : Type) where
-  data TreeCont : Type where
-    leaf : A → TreeCont
-    node : (B → TreeCont) → TreeCont
+module PermTree (A : Type) (B : Type) (_≟ᴮ_ : Discrete B)  where
+  data Tree : Type where
+    leaf : A → Tree
+    node : (B → Tree) → Tree
 
-  data TreePath : (t : TreeCont) → Type where
-    nil : ∀ t → TreePath t
-    cons : ∀ f i → TreePath (f i) → TreePath (node f)
+  data Path : (t : Tree) → Type where
+    nil : ∀ {t} → Path t
+    cons : ∀ {f} i → Path (f i) → Path (node f)
+
+  caseB : {X : Type} → B → X → (B → X) → B → X
+  caseB i y n j = decRec (λ _ → y) (λ _ → n j) (j ≟ᴮ i)
+
+  get : (t : Tree) → (p : Path t) → Tree
+  get t nil = t
+  get (node f) (cons i p) = get (f i) p
+
+  set : (t : Tree) → (p : Path t) → Tree → Tree
+  set t nil s = s
+  set (node f) (cons i p) s = node g
+    where
+    g : B → Tree
+    g = caseB i (set (f i) p s) (λ j → f j)
+
+  swapB : ∀ (i j : B) → (B → B)
+  swapB i j = caseB j i (caseB i j (λ k → k))
 
   -- Subpath
-  data _≤ᵖ_ : {s t : TreeCont} (p : TreePath s) (q : TreePath t) → Type where
-    ≤prefl : ∀ s (p : TreePath s)
-           → p ≤ᵖ p
-    ≤pweaken : ∀ {t f i} (p : TreePath t) (q : TreePath (f i)) → p ≤ᵖ q
-             → p ≤ᵖ cons f i q
+  data _≤ᵖ_ : {t : Tree} (p q : Path t) → Type where
+    ≤nil : ∀ {t} (p : Path t)
+         → nil {t} ≤ᵖ p
+    ≤pextend : ∀ {f i} (p q : Path (f i)) → p ≤ᵖ q
+             → cons {f} i p ≤ᵖ cons {f} i q
 
-  data _≰ᵖ_ : {s t : TreeCont} (p : TreePath s) (q : TreePath t) → Type
+  -- bi-reachability
+  _~ᵖ_ : {t : Tree} (p q : Path t) → Type
+  p ~ᵖ q = (p ≤ᵖ q) ⊎ (q ≤ᵖ p)
+  _≁ᵖ_ : {t : Tree} (p q : Path t) → Type
+  p ≁ᵖ q = ¬ (p ~ᵖ q)
 
-  swap : {t : TreeCont} (p q : TreePath t) → TreeCont
+  ≤prefl : ∀ {t} → {p : Path t} → p ≤ᵖ p  
+  ≤prefl {t} {nil} = ≤nil nil
+  ≤prefl {node f} {cons i p} = ≤pextend p p ≤prefl
 
-  perm : {I : Type} {t : TreeCont} (ps : I → TreePath t) → TreeCont
+  ≤ptrans : ∀ {t} → {p q r : Path t} → p ≤ᵖ q → q ≤ᵖ r → p ≤ᵖ r
+  ≤ptrans (≤nil _) _ = ≤nil _
+  ≤ptrans (≤pextend p _ t) (≤pextend _ q s) = ≤pextend p q (≤ptrans t s)
+
+  ~prefl : ∀ {t} → {p : Path t} → p ~ᵖ p
+  ~prefl = inl ≤prefl
+
+  ~psym : ∀ {t} → {p q : Path t} → p ~ᵖ q → q ~ᵖ p
+  ~psym (inl r) = inr r
+  ~psym (inr r) = inl r
+
+  -- -- transitive bi-reachability
+  -- data _~ᵖ_ : {t : Tree} (p q : Path t) → Type where
+  --   ~pinl : ∀ {p q : Path t} → p ≤ᵖ q → p ~ᵖ q
+  --   ~pinr : ∀ {p q : Path t} → q ≤ᵖ p → p ~ᵖ q
+  --   ~ptrans : ∀ {t} → {p q r : Path t} → p ~ᵖ q → q ~ᵖ r → p ~ᵖ r 
+
+  nil~p : ∀ {t} → (p : Path t) → nil {t} ~ᵖ p
+  nil~p {t} p = inl (≤nil p)
+
+  transPath : {s t : Tree} (p : Path s) 
+
+
+  swap : {t : Tree} (p q : Path t) (p≁q : p ≁ᵖ q) → Tree
+  -- swap {leaf x} nil nil _ = leaf x
+  -- swap {node f} nil q nil≁q = absurd (nil≁q (nil~p q))
+  -- swap {node f} (cons i p) nil nil≁q = absurd (nil≁q (~psym (nil~p (cons i p))))
+  swap {t} p q p≁q = set (set t p sq) {!!} {!!}
+    where
+    sp sq : Tree
+    sp = get t p
+    sq = get t q
+
+  perm : {I : Type} {t : Tree} (ps : I → Path t) → Tree
 
   -- Finite perm tree (swap tree)
   -- Local
-  data _≈ꟳ_ : (s t : TreeCont) → Type where
+  data _≈ꟳ_ : (s t : Tree) → Type where
     ≈refl : ∀ t → t ≈ꟳ t
-    ≈swap : ∀ t → (p q : TreePath t)
-                → (_ : p ≰ᵖ q) (_ : q ≰ᵖ p)
-                → swap p q ≈ꟳ t
+    ≈swap : ∀ t → (p q : Path t)
+                → (p≁q : p ≁ᵖ q)
+                → swap p q p≁q ≈ꟳ t
     ≈trans : ∀ {s t u} → s ≈ꟳ t → t ≈ꟳ u → s ≈ꟳ u
 
   -- Indexed Perm tree (aribitrary permutations of leaves allowed)
   -- Non-local
   module _ {I : Type} where
-    data _≈ᴾ_  : (s t : TreeCont) → Type where
+    data _≈ᴾ_  : (s t : Tree) → Type where
       ≈refl : ∀ t → t ≈ᴾ t
-      ≈perm : ∀ t (ps : I → TreePath t) → (p q : TreePath t)
-            → (∀ (i j : I) → ps i ≰ᵖ ps j)
+      ≈perm : ∀ t (ps : I → Path t) → (p q : Path t)
+            → (∀ (i j : I) → ps i ≁ᵖ ps j)
             → perm ps ≈ᴾ t
       ≈trans : ∀ {s t u} → s ≈ᴾ t → t ≈ᴾ u → s ≈ᴾ u
 
