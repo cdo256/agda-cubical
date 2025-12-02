@@ -386,6 +386,10 @@ module PermTree (A : Type) (B : Type) (_≟ᴮ_ : Discrete B)  where
     nil : ∀ {t} → Path t
     cons : ∀ {f} i → Path (f i) → Path (node f)
 
+  data isLeafPath : {t : Tree} (p : Path t) → Type where
+    lpnil : ∀ {x} → isLeafPath (nil {leaf x})
+    lpcons : ∀ {f} i → (p : Path (f i)) → isLeafPath p → isLeafPath (cons {f = f} i p)
+
   caseB : {X : Type} → B → X → (B → X) → B → X
   caseB i y n j = decRec (λ _ → y) (λ _ → n j) (j ≟ᴮ i)
 
@@ -404,32 +408,32 @@ module PermTree (A : Type) (B : Type) (_≟ᴮ_ : Discrete B)  where
   swapB i j = caseB j i (caseB i j (λ k → k))
 
   -- Subpath
-  data _≤ᵖ_ : {t : Tree} (p q : Path t) → Type where
-    ≤nil : ∀ {t} (p : Path t)
-         → nil {t} ≤ᵖ p
-    ≤pextend : ∀ {f i} (p q : Path (f i)) → p ≤ᵖ q
-             → cons {f} i p ≤ᵖ cons {f} i q
+  -- data _≤ᵖ_ : {t : Tree} (p q : Path t) → Type where
+  --   ≤nil : ∀ {t} (p : Path t)
+  --        → nil {t} ≤ᵖ p
+  --   ≤pextend : ∀ {f i} (p q : Path (f i)) → p ≤ᵖ q
+  --            → cons {f} i p ≤ᵖ cons {f} i q
 
   -- bi-reachability
-  _~ᵖ_ : {t : Tree} (p q : Path t) → Type
-  p ~ᵖ q = (p ≤ᵖ q) ⊎ (q ≤ᵖ p)
-  _≁ᵖ_ : {t : Tree} (p q : Path t) → Type
-  p ≁ᵖ q = ¬ (p ~ᵖ q)
+  -- _~ᵖ_ : {t : Tree} (p q : Path t) → Type
+  -- p ~ᵖ q = (p ≤ᵖ q) ⊎ (q ≤ᵖ p)
+  -- _≁ᵖ_ : {t : Tree} (p q : Path t) → Type
+  -- p ≁ᵖ q = ¬ (p ~ᵖ q)
 
-  ≤prefl : ∀ {t} → {p : Path t} → p ≤ᵖ p  
-  ≤prefl {t} {nil} = ≤nil nil
-  ≤prefl {node f} {cons i p} = ≤pextend p p ≤prefl
+  -- ≤prefl : ∀ {t} → {p : Path t} → p ≤ᵖ p  
+  -- ≤prefl {t} {nil} = ≤nil nil
+  -- ≤prefl {node f} {cons i p} = ≤pextend p p ≤prefl
 
-  ≤ptrans : ∀ {t} → {p q r : Path t} → p ≤ᵖ q → q ≤ᵖ r → p ≤ᵖ r
-  ≤ptrans (≤nil _) _ = ≤nil _
-  ≤ptrans (≤pextend p _ t) (≤pextend _ q s) = ≤pextend p q (≤ptrans t s)
+  -- ≤ptrans : ∀ {t} → {p q r : Path t} → p ≤ᵖ q → q ≤ᵖ r → p ≤ᵖ r
+  -- ≤ptrans (≤nil _) _ = ≤nil _
+  -- ≤ptrans (≤pextend p _ t) (≤pextend _ q s) = ≤pextend p q (≤ptrans t s)
 
-  ~prefl : ∀ {t} → {p : Path t} → p ~ᵖ p
-  ~prefl = inl ≤prefl
+  -- ~prefl : ∀ {t} → {p : Path t} → p ~ᵖ p
+  -- ~prefl = inl ≤prefl
 
-  ~psym : ∀ {t} → {p q : Path t} → p ~ᵖ q → q ~ᵖ p
-  ~psym (inl r) = inr r
-  ~psym (inr r) = inl r
+  -- ~psym : ∀ {t} → {p q : Path t} → p ~ᵖ q → q ~ᵖ p
+  -- ~psym (inl r) = inr r
+  -- ~psym (inr r) = inl r
 
   -- -- transitive bi-reachability
   -- data _~ᵖ_ : {t : Tree} (p q : Path t) → Type where
@@ -437,42 +441,55 @@ module PermTree (A : Type) (B : Type) (_≟ᴮ_ : Discrete B)  where
   --   ~pinr : ∀ {p q : Path t} → q ≤ᵖ p → p ~ᵖ q
   --   ~ptrans : ∀ {t} → {p q r : Path t} → p ~ᵖ q → q ~ᵖ r → p ~ᵖ r 
 
-  nil~p : ∀ {t} → (p : Path t) → nil {t} ~ᵖ p
-  nil~p {t} p = inl (≤nil p)
+  -- nil~p : ∀ {t} → (p : Path t) → nil {t} ~ᵖ p
+  -- nil~p {t} p = inl (≤nil p)
 
-  transPath : {s t : Tree} (p : Path s) 
+  -- transPath : {s t : Tree} (p : Path s) 
 
 
-  swap : {t : Tree} (p q : Path t) (p≁q : p ≁ᵖ q) → Tree
-  -- swap {leaf x} nil nil _ = leaf x
-  -- swap {node f} nil q nil≁q = absurd (nil≁q (nil~p q))
-  -- swap {node f} (cons i p) nil nil≁q = absurd (nil≁q (~psym (nil~p (cons i p))))
-  swap {t} p q p≁q = set (set t p sq) {!!} {!!}
+  swap : (t : Tree) (p q : Path t) → Tree
+  swap t p q = {!!}
+
+  snoc : (t : Tree) (p : Path t) (i : B) (f : B → Tree) (n≡get : node f ≡ get t p) → Path t
+  snoc t nil i f n≡get = subst Path n≡get (cons {f = f} i (nil {f i}))
+  snoc (node g) (cons i p) j f n≡get = cons i (snoc (g i) p j f n≡get)
+
+  get-snoc :
+    (t     : Tree)
+    (i     : B)
+    (f     : B → Tree)
+    (p     : Path t)
+    (s≡get : node f ≡ get t p)
+    → f i ≡ get t (snoc t p i f s≡get)
+  get-snoc t i f p s≡get = {!!}
+  
+
+
+  -- perm : (t : Tree) (P : Path t → hProp ℓ) (φ : Iso (Σ[ p ∈ Path t ] ⟨ P p ⟩) (Σ[ p ∈ Path t ] ⟨ P p ⟩)) → Tree
+  perm : (t : Tree) (φ : Iso (Path t) (Path t)) → Tree
+  perm t φ = r t nil refl
     where
-    sp sq : Tree
-    sp = get t p
-    sq = get t q
-
-  perm : {I : Type} {t : Tree} (ps : I → Path t) → Tree
+    r : (s : Tree) (p : Path t) (_ : s ≡ get t p) → Tree 
+    r (leaf x) p _ = leaf x
+    r (node f) p s≡get = node (λ i → r (f i) (snoc t p i f s≡get) {!!})
 
   -- Finite perm tree (swap tree)
   -- Local
-  data _≈ꟳ_ : (s t : Tree) → Type where
-    ≈refl : ∀ t → t ≈ꟳ t
-    ≈swap : ∀ t → (p q : Path t)
-                → (p≁q : p ≁ᵖ q)
-                → swap p q p≁q ≈ꟳ t
-    ≈trans : ∀ {s t u} → s ≈ꟳ t → t ≈ꟳ u → s ≈ꟳ u
+  -- data _≈ꟳ_ : (s t : Tree) → Type where
+  --   ≈refl : ∀ t → t ≈ꟳ t
+  --   ≈swap : ∀ t → (p q : Path t)
+  --               → swap p q p≁q ≈ꟳ t
+  --   ≈trans : ∀ {s t u} → s ≈ꟳ t → t ≈ꟳ u → s ≈ꟳ u
 
-  -- Indexed Perm tree (aribitrary permutations of leaves allowed)
-  -- Non-local
-  module _ {I : Type} where
-    data _≈ᴾ_  : (s t : Tree) → Type where
-      ≈refl : ∀ t → t ≈ᴾ t
-      ≈perm : ∀ t (ps : I → Path t) → (p q : Path t)
-            → (∀ (i j : I) → ps i ≁ᵖ ps j)
-            → perm ps ≈ᴾ t
-      ≈trans : ∀ {s t u} → s ≈ᴾ t → t ≈ᴾ u → s ≈ᴾ u
+  -- -- Indexed Perm tree (aribitrary permutations of leaves allowed)
+  -- -- Non-local
+  -- module _ {I : Type} where
+  --   data _≈ᴾ_  : (s t : Tree) → Type where
+  --     ≈refl : ∀ t → t ≈ᴾ t
+  --     ≈perm : ∀ t (ps : I → Path t) → (p q : Path t)
+  --           → (∀ (i j : I) → ps i ≁ᵖ ps j)
+  --           → perm ps ≈ᴾ t
+  --     ≈trans : ∀ {s t u} → s ≈ᴾ t → t ≈ᴾ u → s ≈ᴾ u
 
 
 module HoleyList (A : Type) where
