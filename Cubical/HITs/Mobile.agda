@@ -8,12 +8,13 @@ open import Cubical.Foundations.Structure
 open import Cubical.HITs.PropositionalTruncation
 open import Cubical.Foundations.HLevels
 open import Cubical.Foundations.Isomorphism
-open import Cubical.Data.Nat renaming (iter to iterℕ)
+open import Cubical.Data.Nat renaming (iter to iterℕ) hiding (_+_)
 import Cubical.HITs.SetQuotients as Quot
 open Quot hiding (rec)
 open import Cubical.Data.Prod
 open import Cubical.Relation.Binary.Base
 open import Cubical.Relation.Nullary
+open import Cubical.Relation.Nullary.Base 
 
 open BinaryRelation
 open isEquivRel
@@ -176,7 +177,7 @@ module _ {I : Type ℓ}
     open isLimitingCocone 
 
     
-    module _ (C' : Cocone) where
+    module IsLimitingCocone (C' : Cocone) where
       open Cocone C'
       module C' = isSetoid (str (C' .Apex))
 
@@ -201,24 +202,75 @@ module _ {I : Type ℓ}
           → ∀ x → G .apexHom .fun x C'.≈ f x       
       unq G (i , x) = G .commutes i x
 
-    module _ where
-      isLimitingCoconeLimitCocone : isLimitingCocone LimitCocone
-      isLimitingCoconeLimitCocone = record
-        { mor = F
-        ; unique = unq
-        }
-
+    isLimitingCoconeLimitCocone : isLimitingCocone LimitCocone
+    isLimitingCoconeLimitCocone = record
+      { mor = F
+      ; unique = unq
+      }
+      where open IsLimitingCocone
 
 data BTree (B : Type ℓ) : Type ℓ where
   leaf : BTree B
   node : (f : B → BTree B) → BTree B
     
-module ωOrdinal where
-  Ord : Type
-  Ord = BTree ℕ
+module BOrdinal (B : Type) where
+  data Ord : Type where
+    zero : Ord
+    suc : Ord → Ord
+    lim : (B → Ord) → Ord
+
   data _<_ : Ord → Ord → Type where
-    <child : ∀ f i → f i < node f
+    <suc : ∀ α → α < suc α
+    <lim : ∀ α f i → α < f i → α < lim f
     <trans : ∀ {s t u} → s < t → t < u → s < u
+
+  _≤_ : Ord → Ord → Type
+  s ≤ t = ∀ u → (p : u < s) → u < t
+
+  data _≈_ : Ord → Ord → Type where
+    ≈ext : ∀ {s t} → (le : s ≤ t) (ge : t ≤ s)
+         → s ≈ t
+
+  ⊂_ : Ord → Type
+  ⊂ α = Σ[ β ∈ Ord ] β < α
+
+  infixl 30  _+_ 
+  _+_ : Ord → Ord → Ord
+  α + zero = α
+  α + suc β = suc (α + β)
+  α + lim f = lim (λ i → α + f i)
+
+module ωOrdinal where
+  open BOrdinal ℕ public
+  ℕ→Ord : ℕ → Ord 
+  ℕ→Ord zero = zero
+  ℕ→Ord (suc ω) = suc (ℕ→Ord ω)
+  ω : Ord
+  ω = lim ℕ→Ord
+  0<ω : zero < ω
+  0<ω = <lim zero ℕ→Ord 1 (<suc zero)
+    
+
+module BoundedOrdinal (Γ : ωOrdinal.Ord) where
+  module Γ = ωOrdinal
+  open Γ using (⊂_; _+_)
+  data Ord : Type where
+    zero : Ord
+    suc : Ord → Ord
+    lim : (ℕ → Ord) → Ord
+
+  data lt : (φ : ⊂ Γ) → Ord → Ord → Type where
+    <suc : ∀ φ β → lt φ β (suc β)
+    <lim : ∀ φ β {φ<Γ} f i → (p : Γ.suc φ Γ.< Γ) → lt (φ , φ<Γ) β (f i)
+         → lt (Γ.suc φ , p) β (lim f)
+    <trans : ∀ φ φ' {φ<Γ φ'<Γ} {s t u}
+           → (p : φ + φ' Γ.< Γ)
+           → lt (φ , φ<Γ) s t
+           → lt (φ' , φ'<Γ) t u
+           → lt (φ + φ' , p) s u
+
+  _<_ : Ord → Ord → Type
+  β < γ = Σ[ φ ∈ ⊂ Γ ] lt φ β γ
 
   _≤_ : Ord → Ord → Type
   s ≤ t = ∀ u → (p : u < s) → u < t
@@ -229,10 +281,10 @@ module ωOrdinal where
 
   ≈refl : ∀ {t} → t ≈ t
   ≈refl {t} = ≈ext (λ _ p → p) (λ _ p → p)
-
+ 
   ≈sym : ∀ {s t} → s ≈ t → t ≈ s
   ≈sym (≈ext le ge) = ≈ext ge le
-
+ 
   ≈trans : ∀ {s t u} → s ≈ t → t ≈ u → s ≈ u
   ≈trans (≈ext s≤t s≥t) (≈ext t≤u u≥t) =
     ≈ext (λ _ p → t≤u _ (s≤t _ p)) λ _ p → s≥t _ (u≥t _ p)
@@ -245,54 +297,49 @@ module ωOrdinal where
       (λ _ _ p → ≈sym p)
       (λ _ _ _ p q → ≈trans p q) }
 
-  pattern 𝟘 = leaf
-  pattern lim f = node f
-
-  osuc : Ord → Ord
-  osuc α = lim (λ _ → α)
-
-  𝟙 : Ord
-  𝟙 = osuc 𝟘
-  
   ℕ→Ord : ℕ → Ord
-  ℕ→Ord zero = 𝟘
-  ℕ→Ord (suc ω) = osuc (ℕ→Ord ω)
+  ℕ→Ord zero = zero
+  ℕ→Ord (suc ω) = suc (ℕ→Ord ω)
   ω : Ord
   ω = lim ℕ→Ord
-  𝟘<ω : 𝟘 < ω
-  𝟘<ω = <child ℕ→Ord zero
+  0<ω : zero < ω
+  0<ω = {!!} , (<lim Γ.zero zero ℕ→Ord 1 {!!} (<suc (Γ.zero , {!!}) zero))
 
-  data isChild : (α β : Ord) → Type ℓ-zero where
-    ischild : ∀ f i → isChild (node f) (f i) 
+  -- data isChild : (α β : Ord) → Type ℓ-zero where
+  --   ischild : ∀ f i → isChild (node f) (f i) 
   
-  -- not decidable.
-  -- isChild? : (α β : Ord) → Dec (isChild α β)
+  -- -- not decidable.
+  -- -- isChild? : (α β : Ord) → Dec (isChild α β)
 
-  -- Not definable in general since we need arbitrary branching.
-  -- lim' : (f : Ord → Ord) → Ord 
+  -- -- Not definable in general since we need arbitrary branching.
+  -- -- lim' : (f : Ord → Ord) → Ord 
 
-  infixl 30  _+ᵒ_ 
-  _+ᵒ_ : Ord → Ord → Ord
-  α +ᵒ 𝟘 = α
-  α +ᵒ lim f = lim λ i → α +ᵒ f i
+  -- infixl 30  _+ᵒ_ 
+  -- _+ᵒ_ : Ord → Ord → Ord
+  -- α +ᵒ 𝟘 = α
+  -- α +ᵒ lim f = lim λ i → α +ᵒ f i
 
-  _ : (ℕ→Ord 1) +ᵒ (ℕ→Ord 1) ≈ (ℕ→Ord 2)
-  _ = ≈ext le ge
-    where
-    le : (ℕ→Ord 1 +ᵒ ℕ→Ord 1) ≤ ℕ→Ord 2
-    le 𝟘 p = p
-    le (lim f) p = p
-    ge : ℕ→Ord 2 ≤ (ℕ→Ord 1 +ᵒ ℕ→Ord 1)
-    ge = λ u p → p
+  -- _ : (ℕ→Ord 1) +ᵒ (ℕ→Ord 1) ≈ (ℕ→Ord 2)
+  -- _ = ≈ext le ge
+  --   where
+  --   le : (ℕ→Ord 1 +ᵒ ℕ→Ord 1) ≤ ℕ→Ord 2
+  --   le 𝟘 p = p
+  --   le (lim f) p = p
+  --   ge : ℕ→Ord 2 ≤ (ℕ→Ord 1 +ᵒ ℕ→Ord 1)
+  --   ge = λ u p → p
 
-  -- Probably not decidable
-  -- 1+ω≈ω : 𝟙 +ᵒ ω ≈ ω
+  -- -- Probably not decidable
+  -- -- 1+ω≈ω : 𝟙 +ᵒ ω ≈ ω
 
-  -- Does this bring in an extra successor?
-  _∙ᵒ_ : Ord → Ord → Ord
-  α ∙ᵒ 𝟘 = 𝟘
-  α ∙ᵒ lim f = lim (λ i → α ∙ᵒ f i)
-  
+  -- -- Does this bring in an extra successor?
+  -- _∙ᵒ_ : Ord → Ord → Ord
+  -- α ∙ᵒ 𝟘 = 𝟘
+  -- α ∙ᵒ lim f = lim (λ i → α ∙ᵒ f i)
+
+  iterOrd : {A : Type} → Ord → A → (A → A) → ((ℕ → A) → A) → A 
+  iterOrd zero z s l = z
+  iterOrd (suc α) z s l = s (iterOrd α z s l)
+  iterOrd (lim π) z s l = l (λ i → iterOrd (π i) z s l)
 
 module Mobile (B : Type) where
   open Iso
@@ -325,4 +372,80 @@ module Mobile (B : Type) where
       (λ t → ≈refl {t})
       (λ _ _ p → ≈sym p)
       (λ _ _ _ p q → ≈trans p q) }
+
+-- open ωOrdinal ℕ using (Ord; iterOrd)
+
+module PermTree (A : Type) (B : Type) where
+  data TreeCont : Type where
+    leaf : A → TreeCont
+    node : (B → TreeCont) → TreeCont
+
+  data TreePath : (t : TreeCont) → Type where
+    nil : ∀ t → TreePath t
+    cons : ∀ f i → TreePath (f i) → TreePath (node f)
+
+  -- Subpath
+  data _≤ᵖ_ : {s t : TreeCont} (p : TreePath s) (q : TreePath t) → Type where
+    ≤prefl : ∀ s (p : TreePath s)
+           → p ≤ᵖ p
+    ≤pweaken : ∀ {t f i} (p : TreePath t) (q : TreePath (f i)) → p ≤ᵖ q
+             → p ≤ᵖ cons f i q
+
+  
+
+
+module HoleyList (A : Type) where
+  infixl 30 _∷_
+  data HoleyList : Type where
+    [] : HoleyList
+    ●∷_ : HoleyList → HoleyList
+    _∷_ : A → HoleyList → HoleyList
+
+  data _≈_ : HoleyList → HoleyList → Type where
+    ≈refl : ∀ xs → xs ≈ xs
+    ≈swap : ∀ n x y xs
+          → x ∷ iterℕ n ●∷_ (y ∷ xs)
+          ≈ y ∷ iterℕ n ●∷_ (x ∷ xs)
+    ≈trans : ∀ {s t u} → s ≈ t → t ≈ u → s ≈ u
+
+--   ≈refl : ∀ {t} → t ≈ t
+--   ≈refl {leaf} = ≈leaf
+--   ≈refl {node f} = ≈node λ b → ≈refl {f b}
+
+--   ≈sym : ∀ {s t} → s ≈ t → t ≈ s
+--   ≈sym ≈leaf = ≈leaf
+--   ≈sym (≈node c) = ≈node λ b → ≈sym (c b)
+--   ≈sym (≈perm {f} π) =
+--     subst
+--       (λ h → node (f ∘ fun π) ≈ node (f ∘ h))
+--       (funExt (rightInv π))
+--       (≈perm {f = f ∘ fun π} (invIso π))
+--   ≈sym (≈trans s≈t t≈u) = ≈trans (≈sym t≈u) (≈sym s≈t)
+
+--   MobileSetoid : Setoid ℓ-zero ℓ-zero
+--   MobileSetoid = BTree B , record
+--     { _≈_ = _≈_
+--     ; equiv = equivRel
+--       (λ t → ≈refl {t})
+--       (λ _ _ p → ≈sym p)
+--       (λ _ _ _ p q → ≈trans p q) }
       
+
+      
+-- module _ (A : Type) (B : Type) (_≟ᴮ_ : Discrete B) where
+--   data TreeBag : Type where
+--     leaf : A → TreeBag
+--     node : A → (B → TreeBag) → TreeBag
+
+--   Bswap : ∀ (i j : B) → (B → B)
+--   Bswap i j k with (k ≟ᴮ i) | (k ≟ᴮ j)
+--   ... | no ¬k≡i | no ¬k≡j = k
+--   ... | yes k≡i | no ¬k≡j = j
+--   ... | no ¬k≡i | yes k≡j = i
+--   ... | yes k≡i | yes k≡j = k
+  
+--   data _≈_ : TreeBag → TreeBag → Type where
+--     ≈refl : ∀ t → t ≈ t
+--     ≈node : ∀ x f i j → node x f ≈ node x (f ∘ Bswap i j)
+--     ≈child : ∀ x y f g i j → f i ≈ node y g
+--            → {!!} 
