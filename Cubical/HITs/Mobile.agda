@@ -11,7 +11,7 @@ open import Cubical.Foundations.Isomorphism
 open import Cubical.Data.Nat renaming (iter to iterℕ) hiding (_+_)
 import Cubical.HITs.SetQuotients as Quot
 open Quot hiding (rec)
-open import Cubical.Data.Prod
+open import Cubical.Data.Prod hiding (swap)
 open import Cubical.Relation.Binary.Base
 open import Cubical.Relation.Nullary
 open import Cubical.Relation.Nullary.Base 
@@ -391,7 +391,30 @@ module PermTree (A : Type) (B : Type) where
     ≤pweaken : ∀ {t f i} (p : TreePath t) (q : TreePath (f i)) → p ≤ᵖ q
              → p ≤ᵖ cons f i q
 
-  
+  data _≰ᵖ_ : {s t : TreeCont} (p : TreePath s) (q : TreePath t) → Type
+
+  swap : {t : TreeCont} (p q : TreePath t) → TreeCont
+
+  perm : {I : Type} {t : TreeCont} (ps : I → TreePath t) → TreeCont
+
+  -- Finite perm tree (swap tree)
+  -- Local
+  data _≈ꟳ_ : (s t : TreeCont) → Type where
+    ≈refl : ∀ t → t ≈ꟳ t
+    ≈swap : ∀ t → (p q : TreePath t)
+                → (_ : p ≰ᵖ q) (_ : q ≰ᵖ p)
+                → swap p q ≈ꟳ t
+    ≈trans : ∀ {s t u} → s ≈ꟳ t → t ≈ꟳ u → s ≈ꟳ u
+
+  -- Indexed Perm tree (aribitrary permutations of leaves allowed)
+  -- Non-local
+  module _ {I : Type} where
+    data _≈ᴾ_  : (s t : TreeCont) → Type where
+      ≈refl : ∀ t → t ≈ᴾ t
+      ≈perm : ∀ t (ps : I → TreePath t) → (p q : TreePath t)
+            → (∀ (i j : I) → ps i ≰ᵖ ps j)
+            → perm ps ≈ᴾ t
+      ≈trans : ∀ {s t u} → s ≈ᴾ t → t ≈ᴾ u → s ≈ᴾ u
 
 
 module HoleyList (A : Type) where
