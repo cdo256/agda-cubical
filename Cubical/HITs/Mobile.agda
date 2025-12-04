@@ -461,7 +461,13 @@ module PermTree (A : Type) (B : Type) (_≟ᴮ_ : Discrete B)  where
     (p     : Path t)
     (s≡get : node f ≡ get t p)
     → f i ≡ get t (snoc t p i f s≡get)
-  get-snoc t i f p s≡get = {!!}
+  get-snoc t i f nil s≡get =
+    f i
+      ≡⟨ {!!} ⟩
+    get t (subst Path s≡get (cons {f = f} i (nil {f i})))
+      ≡⟨ refl ⟩
+    get t (snoc t nil i f s≡get) ∎
+  get-snoc t i f (cons i₁ p) s≡get = {!!}
   
 
 
