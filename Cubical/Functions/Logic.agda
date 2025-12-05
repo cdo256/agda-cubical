@@ -77,6 +77,10 @@ isProp⟨⟩ = snd
 _⇒_ : (A : hProp ℓ) → (B : hProp ℓ') → hProp _
 A ⇒ B = (⟨ A ⟩ → ⟨ B ⟩) , isPropΠ λ _ → isProp⟨⟩ B
 
+⇒i : {A : hProp ℓ} → {B : hProp ℓ'}
+   → (⟨ A ⟩ → ⟨ B ⟩) → ⟨ A ⇒ B ⟩
+⇒i f a = f a
+
 ⇔toPath : ⟨ P ⇒ Q ⟩ → ⟨ Q ⇒ P ⟩ → P ≡ Q
 ⇔toPath {P = P} {Q = Q} P⇒Q Q⇒P = hProp≡ (hPropExt (isProp⟨⟩ P) (isProp⟨⟩ Q) P⇒Q Q⇒P)
 
