@@ -34,6 +34,7 @@ module _ {ℓ} {A B : Type ℓ} (isSetA : isSet A) (isSetB : isSet B) where
 
   isBijection : (f : A → B) → hProp ℓ
   isBijection f = isSurjection f ⊓ isInjection f
+    
 
   module Bij→Iso (f : A → B) (surj : ⟨ isSurjection f ⟩) (inj : ⟨ isInjection f ⟩) where
     isPropFiber : (b : B) → isProp (fiber f b)
@@ -44,8 +45,23 @@ module _ {ℓ} {A B : Type ℓ} (isSetA : isSet A) (isSetB : isSet B) where
       inj-x≡inj-y : PathP (λ i → f (x≡y i) ≡ b) inj-x inj-y
       inj-x≡inj-y = isSet→SquareP (λ _ _ → isSetB) inj-x inj-y (cong f x≡y) (λ _ → b)
 
+
+    isPropIsEquiv'' : (f : A → B) → isProp (isEquiv f)
+    isPropIsEquiv'' f e1 e2 i .equiv-proof b = ΣPathP (p , r) i
+      where
+      p : e1 .equiv-proof b .fst ≡ e2 .equiv-proof b .fst
+      p = e1 .equiv-proof b .snd (e2 .equiv-proof b .fst)
+      q : (a : A) → (fa≡b : f a ≡ b)
+        → (λ i → p i ≡ (a , fa≡b))
+        [ e1 .equiv-proof b .snd (a , fa≡b)
+        ≡ e2 .equiv-proof b .snd (a , fa≡b) ]
+      q a fa≡b = isSet→SquareP (λ _ _ → isSetΣ isSetA λ a → isProp→isSet (isSetB (f a) b)) _ _ _ _
+      r : (λ i → (y : fiber f b) → p i ≡ y) [ e1 .equiv-proof b .snd ≡ e2 .equiv-proof b .snd ]
+      r i (a , fa≡b) = q a fa≡b i
+
+
     isInhabFiber : (b : B) → fiber f b
-    isInhabFiber b = {!!} , {!!}
+    isInhabFiber b = S→a S , {!!}
       where
       S : ⟨ ∃[ a ] f a ≡ₚ b ⟩
       S = surj b
@@ -96,3 +112,4 @@ isContrSingl' a = (a , refl) , prop
   where
   prop : ∀ (b̂ : singl a) → (a , refl) ≡ b̂
   prop (b , p) i = (p i) , λ j → p (i ∧ j)
+
