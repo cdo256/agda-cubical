@@ -1,6 +1,8 @@
 module Cubical.HITs.Mobile where
 
-open import Cubical.Foundations.Prelude hiding (Path)
+open import Cubical.Foundations.Prelude hiding (Path; _◁_)
+open import Cubical.Data.Containers.Base
+open import Cubical.Data.Containers.Algebras
 open import Cubical.Foundations.Transport
 open import Cubical.Foundations.Function
 open import Cubical.Foundations.Path
@@ -13,10 +15,16 @@ import Cubical.HITs.SetQuotients as Quot
 open Quot hiding (rec)
 open import Cubical.Data.Prod hiding (swap)
 open import Cubical.Data.Sum
+open import Cubical.Data.Fin
 open import Cubical.Data.Empty renaming (elim to absurd)
 open import Cubical.Relation.Binary.Base
 open import Cubical.Relation.Nullary
 open import Cubical.Relation.Nullary.Base 
+open import Cubical.Categories.Instances.Sets.Base 
+open import Cubical.WildCat.Instances.Types
+open import Cubical.Data.Containers.WildCat
+open import Cubical.WildCat.Base
+open import Cubical.WildCat.Functor
 
 open BinaryRelation
 open isEquivRel
@@ -553,3 +561,42 @@ module HoleyList (A : Type) where
 --     ≈node : ∀ x f i j → node x f ≈ node x (f ∘ Bswap i j)
 --     ≈child : ∀ x y f g i j → f i ≈ node y g
 --            → {!!} 
+
+module RoseTree where
+  open Algs
+  open import Cubical.Data.W.W 
+  open WildCat
+  open ⟦_⟧F Unit
+  ListC : Container ℓ-zero ℓ-zero
+  ListC = ℕ ◁ λ _ → Fin
+  
+  BaseRT : Type
+  BaseRT = W ℕ Fin
+  
+  LeafedRT : Container ℓ-zero ℓ-zero
+  LeafedRT = BaseRT ◁ P
+    where
+    P : Unit → BaseRT → Type
+    P _ (sup-W zero _) = Unit
+    P _ (sup-W (suc _) _) = ⊥
+  
+  FunctorRT : WildFunctor (FamCat Unit ℓ-zero) (TypeCat ℓ-zero)
+  FunctorRT = ⟦ LeafedRT ⟧
+
+  open WildFunctor
+
+    
+  RoseTree : (A : Type) → Type
+  RoseTree A = FunctorRT .F-ob (λ _ → A) 
+
+  module _ {A : Type} where
+    [] : RoseTree A
+    [] = s , f
+      where
+      open IContainer LeafedRT
+      s : S
+      s = sup-W 0 (λ fin0 → absurd (¬Fin0 fin0))
+      f : ∀ i → P i s → A 
+      f _ tt = {!!}
+
+  

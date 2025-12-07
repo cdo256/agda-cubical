@@ -1,4 +1,4 @@
--- {-# OPTIONS --safe #-}
+{-# OPTIONS --safe #-}
 module Cubical.Categories.Isomorphism where
 
 open import Cubical.Foundations.Prelude
