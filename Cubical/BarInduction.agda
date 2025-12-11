@@ -23,8 +23,8 @@ module _ {ℓ} (A : Type ℓ) where
   prefixFin (suc n) (x ∷ xs) =
     map-Maybe (x ∷_) (prefixFin n xs)
 
-  isBar : (B : FinSeq → Type ℓ) → Type ℓ
-  isBar B = ∀ (α : InfSeq) → ∃[ i ∈ ℕ ] B (prefix i α)
+  -- isBar : (B : FinSeq → Type ℓ) → Type ℓ
+  -- isBar B = ∀ (α : InfSeq) → ∃[ i ∈ ℕ ] B (prefix i α)
 
   MaybeType→Type : Maybe (Type ℓ) → Type ℓ
   MaybeType→Type nothing = ⊥*
@@ -36,61 +36,35 @@ module _ {ℓ} (A : Type ℓ) where
   FinSeqCrossesBar B xs = ∃[ i ∈ ℕ ]
     MaybeType→Type (map-Maybe B (prefixFin i xs))
 
+
+  data Bar {ℓ} {A : Type ℓ} (P : List A → Type ℓ)
+       : (xs : List A) → Type ℓ where
+    now   : ∀ xs → P xs → Bar P xs
+    later : ∀ xs → (∀ x → Bar P (x ∷ xs)) → Bar P xs
+
   module BarInduction
-         (B : FinSeq → Type ℓ)
-         (isBarB : isBar B)
          (P : FinSeq → Type ℓ)
+         (Q : FinSeq → Type ℓ)
          where
 
     BaseType : Type ℓ
-    BaseType = ∀ xs → FinSeqCrossesBar B xs → P xs
+    BaseType = ∀ xs → P xs → Q xs
 
     InductiveType : Type ℓ
-    InductiveType =
-      ∀ xs → (∀ x → P (xs ++ [ x ])) → P xs
+    InductiveType = ∀ xs → (∀ x → Q (x ∷ xs)) → Q xs
 
-    infix 3 _<_
-    infix 3 _≤_
+    barInduction 
+      : ∀ xs (B : Bar P xs) → BaseType
+      → InductiveType → Q xs
+    barInduction xs (now xs pxs) base ind = base xs pxs
+    barInduction xs (later xs pch) base ind =
+      ind xs u
+      where
+      u : (y : A) → Q (y ∷ xs)
+      u y with pch y
+      ... | now (x ∷ xs) pxxs = base (x ∷ xs) pxxs
+      ... | later (x ∷ xs) Pxxxs =
+        barInduction (y ∷ xs) (pch y) base ind
 
-    data _<_ : (xs ys : FinSeq) → Type ℓ where
-      <base : ∀ y ys → y ∷ ys < []
-      <suc : ∀ xs ys x → xs < ys → x ∷ xs < x ∷ ys
-
-    data Bar {ℓ} {A : Type ℓ} (P : List A → Type ℓ) (xs : List A) : Type ℓ where
-      now   : P xs → Bar P xs
-      later : (∀ x → Bar P (x ∷ xs)) → Bar P xs
-
-    _≤_ : (xs ys : FinSeq) → Type ℓ
-    xs ≤ ys = (xs ≡ ys) ⊎ (xs < ys)
-
-    -- barInduction : BaseType → InductiveType → P []
-    -- barInduction base ind = {!!}
-
-
-    -- <split-inc : ∀ z xs ys → ys ≤ xs → z ∷ ys ≤ z ∷ xs
-    -- <split-inc z xs ys (inl p) = inl (cong (z ∷_) p)
-    -- <split-inc z xs ys (inr ys<xs) =
-    --   inr (<suc ys xs z ys<xs)
-
-    -- <split : ∀ z xs ys → ys < z ∷ xs → ys ≤ xs
-    -- <split z [] [] lt = inl refl
-    -- <split z [] (y ∷ ys) (<suc _ _ _ ())
-    -- <split z (x ∷ xs) [] lt = inr (<base x xs)
-    -- <split y (x ∷ xs) (y ∷ ys) (<suc _ _ _ lt) =
-    --   r (<split x xs ys lt)
-    --   where
-    --   x≡z : x ≡ y
-    --   x≡z = {!!}
-    --   r : ys ≤ xs → (y ∷ ys) ≤ (x ∷ xs)
-    --   r (inl ys≡xs) = {!!}
-    --   r (inr (<base y ys)) = {!!}
-    --   r (inr (<suc xs ys x x₁)) = {!!}
-    
-    -- <-wellFounded : WellFounded _<_
-    -- <-wellFounded [] = acc (λ _ ()) 
-    -- <-wellFounded (x ∷ xs) = acc r
-    --   where
-    --   r : WFRec _<_ (Acc _<_) (x ∷ xs)
-    --   r [] _ = acc (λ _ ())
-    --   r (y ∷ ys) (<suc ys xs x ys<xs) = {!!}
-
+data W {ℓ} (S : Type ℓ) (P : S → Type ℓ) : Type ℓ where
+  sup : ∀ (s : S) (f : P s → W S P) → W S P

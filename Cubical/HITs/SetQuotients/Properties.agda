@@ -265,6 +265,53 @@ setQuotSymmBinOp {A = A} {R = R} isReflR transitiveR _∗_ ∗Rsymm h =
       (transitiveR _ _ _ (∗Rsymm a' b)
         (transitiveR _ _ _ (h b b' a' rb) (∗Rsymm b' a')))
 
+-- module Test1 where
+--   open import Cubical.Data.Nat
+--   data R' : ℕ → ℕ → Type where
+--     r' : R' 0 2
+
+--   even : ℕ / R'
+--   even = [ 0 ]
+--   odd : ℕ / R'
+--   odd = [ 1 ]
+
+--   suc' : ℕ / R' → ℕ / R'
+--   suc' = rec squash/ (λ n → [ suc n ]) feq
+--     where
+--     feq : (a b : ℕ) → R' a b → [ suc a ] ≡ [ suc b ]
+--     feq 0 2 r' = {!!}
+
+--   1~3 : Path (ℕ / R') [ 1 ] [ 3 ] 
+--   1~3 = {!!}
+  
+
+setQuotRelIsEquiv : (Rprop : isPropValued R)
+  → A / R ≡ A / (BinaryRelation.EquivClosure.EquivClosure R)
+setQuotRelIsEquiv {A = A} {R = R} Rprop = isoToPath A/R≅A/R̂
+  where
+  open BinaryRelation.EquivClosure
+  R̂ = EquivClosure R
+  open Iso
+  f : A / R → A / R̂
+  f [ a ] = [ a ]
+  f (eq/ a b r i) = eq/ a b (inj a b r) i
+  f (squash/ x y p q i j) = squash/ (f x) (f y) (cong f p) (cong f q) i j
+  R̂-p : (a b : A) → R̂ a b → Path (A / R) [ a ] [ b ]
+  R̂-p a b (inj a b rab) = eq/ a b rab
+  R̂-p a b (reflexive a) = refl
+  R̂-p a b (symmetric b a r̂ba) = sym (R̂-p b a r̂ba)
+  R̂-p a b (transitive a c b r̂ac r̂cb) = R̂-p a c r̂ac ∙ R̂-p c b r̂cb
+  g : A / R̂ → A / R
+  g [ a ] = [ a ]
+  g (eq/ a b r̂ab i) = R̂-p a b r̂ab i
+  g (squash/ x y p q i j) = squash/ (g x) (g y) (cong g p) (cong g q) i j
+
+  A/R≅A/R̂ : Iso (A / R) (A / R̂)
+  A/R≅A/R̂ .fun = f
+  A/R≅A/R̂ .inv = g
+  A/R≅A/R̂ .rightInv = elimProp (λ _ → squash/ _ _) (λ a → refl) 
+  A/R≅A/R̂ .leftInv = elimProp (λ _ → squash/ _ _) (λ a → refl)
+
 effective : (Rprop : isPropValued R) (Requiv : isEquivRel R)
   → (a b : A) → [ a ] ≡ [ b ] → R a b
 effective {A = A} {R = R} Rprop (equivRel R/refl R/sym R/trans) a b p =
@@ -351,148 +398,3 @@ descendMapPath f g isSetM path i x =
                         g x   ∎ })
     ([]surjective x)
     i
-
-_/ʰ_ : ∀ {ℓ ℓ'} (A : Type ℓ) (R : A → A → Type ℓ') → hSet (ℓ-max ℓ ℓ')
-A /ʰ R = A / R , squash/
-
-∥_∥₁ʰ : ∀ {ℓ} → (A : Type ℓ) → hProp ℓ
-∥ A ∥₁ʰ = ∥ A ∥₁ , squash₁
-
-module Tricky where
-  data Tricky : Type where
-    t1 : Tricky
-    t2 : Tricky
-    gl : t1 ≡ t2
-
-  f : Tricky → Type
-  f t1 = Tricky
-  f t2 = Tricky
-  f (gl i) = Tricky
-
-module _ {ℓ ℓ'} (A : Type ℓ) (R : A → A → Type ℓ') (equiv : isEquivRel R) where
-  open isEquivRel equiv
-  open PropTrunc
-
-  -- recursor
-  module _ {B : A / R → Type ℓ''} (f : (a : A) → B [ a ])
-           (fp : (a b : A) → (r : R a b)
-               → PathP (λ i → B (eq/ a b r i)) (f a) (f b))
-           (isSetB : ∀ x → isSet (B x)) where
-    lift-f : (a : A / R) → B a
-    lift-f [ a ] = f a
-    lift-f (eq/ a b r i) = fp a b r i
-    lift-f (squash/ x y p q i j) =
-      isSet→SquareP (λ i j → isSetB (squash/ x y p q i j)) (λ j → lift-f (p j)) (λ j → lift-f (q j)) (λ i → lift-f x) (λ i → lift-f y) i j
-
-  R' : A → (A / R) → hProp ℓ'
-  R' a = lift-f f fp λ _ → isSetHProp
-    where
-    f : ∀ (x : A) → hProp ℓ'
-    f x = ∥ R a x ∥₁ʰ
-    fp : ∀ x y (rxy : R x y) → f x ≡ f y
-    fp x y rxy = Σ≡Prop (λ _ → isPropIsProp) p
-      where
-      ϕ : ∥ R a x ∥₁ → ∥ R a y ∥₁
-      ϕ ∣ rax ∣₁ = ∣ transitive a x y rax rxy ∣₁
-      ϕ (squash₁ u v i) = squash₁ (ϕ u) (ϕ v) i
-      ψ : ∥ R a y ∥₁ → ∥ R a x ∥₁
-      ψ ∣ ray ∣₁ = ∣ transitive a y x ray (symmetric x y rxy) ∣₁
-      ψ (squash₁ u v i) = squash₁ (ψ u) (ψ v) i
-      p : ∥ R a x ∥₁ ≡ ∥ R a y ∥₁
-      p = ua (propBiimpl→Equiv squash₁ isPropPropTrunc ϕ ψ)
-  effective' : ∀ (x y : A) → Path (A / R) [ x ] [ y ] → ∥ R x y ∥₁
-  effective' x y p = transport Rxx≡Rxy ∣ reflexive x ∣₁
-    where
-    Rxx≡Rxy : ∥ R x x ∥₁ ≡ ∥ R x y ∥₁
-    Rxx≡Rxy = cong (λ ○ → R' x ○ .fst) p
-
--- Goal: p i
--- ———— Boundary (wanted) —————————————————————————————————————
--- j = i0 ⊢ u
--- j = i1 ⊢ v
--- i = i0 ⊢ squash₁ u v j
--- i = i1 ⊢ squash₁ u v j
-
-      -- isProp→SquareP {B = λ i j → p i} (λ i j → {!!})
-        -- {!λ i → u!} {!λ i → u!} {!λ i → u!} {!λ i → !} i j
---       Goal: p i
--- ———— Boundary (wanted) —————————————————————————————————————
--- j = i0 ⊢ u
--- j = i1 ⊢ v
--- i = i0 ⊢ squash₁ u v j
--- i = i1 ⊢ squash₁ u v j
-
-  -- data R̂ (a : A) (x : A / R) : Type (ℓ-max ℓ ℓ') where
-  --   mkR̂ : (b : A) (p : [ b ] ≡ x) (r : R a b) → R̂ a x
-
-  -- R' : A → A / R → hProp ?
-  -- R' a = lift-f f fp {!!}
-  --   where
-  --   f : ∀ (x : A) → Type (ℓ-max ℓ ℓ')
-  --   f x = ∥ R̂ a [ x ] ∥₁
-  --   fp : ∀ x y (rxy : R x y) → f x ≡ f y
-  --   fp x y rxy = {!squash₁!}
-  --     where
-  --     ϕ : f x → f y
-  --     ϕ ∣ mkR̂ ẋ ẋ≡x raẋ ∣₁ = let ray = transitive raẋ (isTrans {!!} rxy) in ∣ mkR̂ y refl ray ∣₁
-  --     ϕ (squash₁ u v i) = squash₁ (ϕ u) (ϕ v) i
-  --     ψ : f y → f x
-  --     ψ ∣ ray ∣₁ = ∣ {!!} ∣₁
-  --     ψ (squash₁ u v i) = squash₁ (ψ u) (ψ v) i
-  --     p : f x ≡ f y
-  --     p = ua (propBiimpl→Equiv squash₁ isPropPropTrunc ϕ ψ)
-
-      
-      -- ϕ : ∥ R̂ a [ x ] ∥₁ → ∥ R̂ a [ y ] ∥₁
-      -- ϕ ∣ rax ∣₁ = ∣ transitive {!rax!} rxy ∣₁
-      -- ϕ (squash₁ u v i) = squash₁ (ϕ u) (ϕ v) i
-      -- ψ : ∥ R a y ∥₁ → ∥ R a x ∥₁
-      -- ψ ∣ ray ∣₁ = ∣ transitive ray (symmetric rxy) ∣₁
-      -- ψ (squash₁ u v i) = squash₁ (ψ u) (ψ v) i
-      -- p : ∥ R a x ∥₁ ≡ ∥ R a y ∥₁
-      -- p = ua (propBiimpl→Equiv squash₁ isPropPropTrunc ϕ ψ)
-
-
-  -- -- R' : A → A / R → hProp _
-  -- -- R' a [ a' ] = ∥ R a a' ∥₁ , squash₁
-  -- -- R' a (eq/ x y rxy i) = ΣPathP (p , {!q!}) i
-  -- --   where
-  -- --   ϕ : ∥ R a x ∥₁ → ∥ R a y ∥₁
-  -- --   ϕ ∣ rax ∣₁ = ∣ transitive rax rxy ∣₁
-  -- --   ϕ (squash₁ u v i) = squash₁ (ϕ u) (ϕ v) i
-  -- --   ψ : ∥ R a y ∥₁ → ∥ R a x ∥₁
-  -- --   ψ ∣ ray ∣₁ = ∣ transitive ray (symmetric rxy) ∣₁
-  -- --   ψ (squash₁ u v i) = squash₁ (ψ u) (ψ v) i
-  -- --   p : ∥ R a x ∥₁ ≡ ∥ R a y ∥₁
-  -- --   p = ua (propBiimpl→Equiv squash₁ isPropPropTrunc ϕ ψ)
-  -- --   q : ∀ i → isProp (p i)
-  -- --   q i = pathPreservesProp squash₁ p i
-  -- --   s : PathP (λ i → isProp (p i))
-  -- --             squash₁
-  -- --             (transport (λ j → isProp (p j)) squash₁)
-  -- --   s = transport-filler (λ j → isProp (p j)) squash₁
-  -- --   t : PathP (λ i → isProp (p i)) squash₁ isPropPropTrunc
-  -- --   t = s ▷ sym (transport-filler {!!} rxy i)
-  -- -- -- R' a (squash/ x y p q i j) = r i j
-  -- -- --   where
-  -- -- --   C : I → I → Type _
-  -- -- --   C i j = Type ℓ'
-
-  -- --   setC : (i j : I) → isSet (C i j)
-  -- --   setC i j = {!!}
-
-  -- --   r : SquareP C
-  -- --         (λ j → R' a (p j))
-  -- --         (λ j → R' a (q j))
-  -- --         (λ _ → R' a x)
-  -- --         (λ _ → R' a y)
-  -- --   r = isSet→SquareP setC
-  -- --         (λ j → R' a (p j))
-  -- --         (λ j → R' a (q j))
-  -- --         (λ _ → R' a x)
-  -- --         (λ _ → R' a y)
-
-  -- -- isSetValuedR' : ∀ a x → isSet (R' a x)
-  -- -- isSetValuedR' a x = {!isProp→isSet squash₁!}
-
-  

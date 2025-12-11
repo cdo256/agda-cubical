@@ -142,6 +142,16 @@ module BinaryRelation {ℓ ℓ' : Level} {A : Type ℓ} (R : Rel A A ℓ') where
       symmetric : isSym
       transitive : isTrans
 
+  module EquivClosure where
+    data EquivClosure : Rel A A (ℓ-max ℓ ℓ')
+    private
+      S = EquivClosure
+    data EquivClosure where
+      inj : ∀ a b → R a b → S a b
+      reflexive : ∀ a → S a a
+      symmetric : ∀ a b → S a b → S b a
+      transitive : ∀ a b c → S a b → S b c → S a c
+    
   isUniversalRel→isEquivRel : HeterogenousRelation.isUniversalRel R → isEquivRel
   isUniversalRel→isEquivRel u .isEquivRel.reflexive a = u a a
   isUniversalRel→isEquivRel u .isEquivRel.symmetric a b _ = u b a
@@ -219,6 +229,13 @@ EquivRel A ℓ' = Σ[ R ∈ Rel A A ℓ' ] BinaryRelation.isEquivRel R
 
 EquivPropRel : ∀ {ℓ} (A : Type ℓ) (ℓ' : Level) → Type (ℓ-max ℓ (ℓ-suc ℓ'))
 EquivPropRel A ℓ' = Σ[ R ∈ PropRel A A ℓ' ] BinaryRelation.isEquivRel (R .fst)
+  
+isEquivRelEquivClosure
+  : ∀ {ℓ ℓ'} (A : Type ℓ) (R : Rel A A ℓ')
+  → BinaryRelation.isEquivRel (BinaryRelation.EquivClosure.EquivClosure R)
+isEquivRelEquivClosure A R =
+  BinaryRelation.equivRel reflexive symmetric transitive
+  where open BinaryRelation.EquivClosure
 
 record RelIso {A : Type ℓA} (_≅_ : Rel A A ℓ≅A)
               {A' : Type ℓA'} (_≅'_ : Rel A' A' ℓ≅A') : Type (ℓ-max (ℓ-max ℓA ℓA') (ℓ-max ℓ≅A ℓ≅A')) where
