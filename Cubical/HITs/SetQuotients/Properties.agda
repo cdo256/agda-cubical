@@ -265,26 +265,6 @@ setQuotSymmBinOp {A = A} {R = R} isReflR transitiveR _∗_ ∗Rsymm h =
       (transitiveR _ _ _ (∗Rsymm a' b)
         (transitiveR _ _ _ (h b b' a' rb) (∗Rsymm b' a')))
 
--- module Test1 where
---   open import Cubical.Data.Nat
---   data R' : ℕ → ℕ → Type where
---     r' : R' 0 2
-
---   even : ℕ / R'
---   even = [ 0 ]
---   odd : ℕ / R'
---   odd = [ 1 ]
-
---   suc' : ℕ / R' → ℕ / R'
---   suc' = rec squash/ (λ n → [ suc n ]) feq
---     where
---     feq : (a b : ℕ) → R' a b → [ suc a ] ≡ [ suc b ]
---     feq 0 2 r' = {!!}
-
---   1~3 : Path (ℕ / R') [ 1 ] [ 3 ] 
---   1~3 = {!!}
-  
-
 setQuotRelIsEquiv : (Rprop : isPropValued R)
   → A / R ≡ A / (BinaryRelation.EquivClosure.EquivClosure R)
 setQuotRelIsEquiv {A = A} {R = R} Rprop = isoToPath A/R≅A/R̂
