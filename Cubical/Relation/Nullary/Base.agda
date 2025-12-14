@@ -68,3 +68,6 @@ PStable≡ = onAllPaths PStable
 
 Discrete : Type ℓ → Type ℓ
 Discrete = onAllPaths Dec
+
+_≢_ : ∀ {A : Type ℓ} → A → A → Type ℓ
+x ≢ y = ¬ (x ≡ y)
