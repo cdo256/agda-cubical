@@ -27,45 +27,7 @@ Fin : ℕ → Type₀
 Fin n = Σ[ k ∈ ℕ ] k < n
 
 private
-  variable
-    ℓ : Level
-    k : ℕ
-
-fzero : Fin (suc k)
-fzero = (0 , suc-≤-suc zero-≤)
-
-fone : Fin (suc (suc k))
-fone = (1 , suc-≤-suc (suc-≤-suc zero-≤))
-
-fzero≠fone : ¬ fzero {k = suc k} ≡ fone
-fzero≠fone p = znots (cong fst p)
-
--- It is easy, using this representation, to take the successor of a
--- number as a number in the next largest finite type.
-fsuc : Fin k → Fin (suc k)
-fsuc (k , l) = (suc k , suc-≤-suc l)
-
-finj : Fin k → Fin (suc k)
-finj (k , l) = k , ≤-trans l (1 , refl)
-
--- predecessors too
-predFin : (m : ℕ) → Fin (suc (suc m)) → Fin (suc m)
-predFin m (zero , w) = fzero
-predFin m (suc n , w) = n , predℕ-≤-predℕ w
-
--- Conversion back to ℕ is trivial...
-toℕ : Fin k → ℕ
-toℕ = fst
-
--- ... and injective.
-toℕ-injective : ∀{fj fk : Fin k} → toℕ fj ≡ toℕ fk → fj ≡ fk
-toℕ-injective {fj = fj} {fk} = Σ≡Prop (λ _ → isProp≤)
-
--- Conversion from ℕ with a recursive definition of ≤
-
-fromℕ≤ : (m n : ℕ) → m ≤′ n → Fin (suc n)
-fromℕ≤ zero    _       _    = fzero
-fromℕ≤ (suc m) (suc n) m≤n = fsuc (fromℕ≤ m n m≤n)
+  v
 
 -- A case analysis helper for induction.
 fsplit

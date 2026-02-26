@@ -51,7 +51,7 @@ module DNE where
 
       -- Simplified: transport p b ≡ b
       eq : transport p b ≡ b
-      eq = ?
+      eq = {!!}
       -- eq = transport (λ i → p i) b              ≡[ i ]≡ pathOver i (λ _ → dne (p i) (λ h → h (p i))) -- conceptual
 
       -- -- Direct calculation:

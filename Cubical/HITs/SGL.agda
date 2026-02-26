@@ -36,6 +36,7 @@ record Node : Type where
 
 data Node' : Type where
   node : Node → Node' 
+  
 
 -- data Node : Type
 
